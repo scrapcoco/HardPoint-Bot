@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="32" fill="#0B0B0A"/>
+  <rect x="18" y="18" width="220" height="220" rx="26" stroke="#FFDD3D" stroke-width="6" opacity="0.7"/>
+  <path d="M75 98h106v92H75V98Z" fill="#FFDD3D"/>
+  <path d="M63 78h130v34H63V78Z" fill="#FFE86A"/>
+  <path d="M117 78h22v112h-22V78Z" fill="#171714"/>
+  <path d="M82 78c-9-18 1-32 17-30 15 2 25 17 29 30H82Z" stroke="#FFDD3D" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M174 78c9-18-1-32-17-30-15 2-25 17-29 30h46Z" stroke="#FFDD3D" stroke-width="10" stroke-linejoin="round"/>
+  <text x="128" y="218" text-anchor="middle" fill="#F4F4F4" font-family="Arial, sans-serif" font-size="30" font-weight="900">PRIZE</text>
+</svg>

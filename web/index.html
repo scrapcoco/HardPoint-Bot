@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HardPoint Приглашения</title>
+    <link rel="stylesheet" href="/styles.css?v=39">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <canvas id="arena" aria-hidden="true"></canvas>
+
+    <main class="app-shell">
+      <header class="brand-row">
+        <div class="brand-lockup">
+          <button id="back-button" class="back-button" type="button" aria-label="Назад">←</button>
+          <div class="hp-mark" aria-hidden="true">HP</div>
+          <div class="brand-title">
+            <p class="eyebrow">Szczecin · E-sport Hub</p>
+            <h1>HardPoint</h1>
+          </div>
+        </div>
+        <div class="brand-actions">
+          <button id="header-coins" class="coin-pill" type="button">🪙 <span id="header-coin-balance">0</span></button>
+          <button id="header-notifications" class="notify-button" type="button" aria-label="Уведомления">🔔<span>2</span></button>
+        </div>
+      </header>
+
+      <div class="menu-wrap">
+        <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false">Меню</button>
+        <div id="menu-panel" class="menu-panel" aria-hidden="true">
+          <button id="home-menu-button" class="is-current" type="button">Главная</button>
+          <button id="league-menu-button" type="button">Series</button>
+          <button id="esport-menu-button" type="button">E-sport</button>
+        </div>
+      </div>
+
+      <div id="home-view" class="app-view is-active">
+        <section class="welcome-panel">
+          <button id="home-avatar-button" class="user-avatar" type="button" aria-label="Открыть профиль">HP</button>
+          <div class="welcome-copy">
+            <p>Добро пожаловать 👋</p>
+            <strong id="home-username">@hardpoint</strong>
+          </div>
+          <button id="profile-menu-button" class="profile-pill" type="button" aria-expanded="false">◉ Профиль ▾</button>
+          <div id="profile-dropdown" class="profile-dropdown" aria-hidden="true">
+            <button id="dropdown-profile-button" type="button">◉ Мой профиль</button>
+            <button id="profile-missions-button" type="button">🎯 Миссии</button>
+            <button id="shop-menu-button" type="button">🏆 Мои награды</button>
+            <button id="profile-clans-button" type="button">⚔️ Кланы <span id="profile-clan-badge">Soon</span></button>
+            <button id="dropdown-settings-button" type="button">⚙️ Настройки</button>
+          </div>
+          <span class="season-badge">Сезон / Апрель</span>
+        </section>
+
+        <section class="rank-panel home-rank-panel">
+          <div class="rank-head">
+            <div>
+              <p class="label">Текущий ранг</p>
+              <h2 id="rank-title">🥉 Recruit</h2>
+            </div>
+            <strong id="rank-score">0</strong>
+          </div>
+          <div class="rank-meter" aria-label="Прогресс ранга">
+            <span id="rank-meter-fill"></span>
+          </div>
+          <p class="panel-note" id="rank-next">До следующего ранга: 3</p>
+          <p class="panel-note" id="coin-note">За каждого приглашённого друга: 20 монет.</p>
+          <div class="rank-stats">
+            <button id="home-invites-stat" type="button">
+              <span>Инвайтов</span>
+              <strong id="rank-invites">0</strong>
+            </button>
+            <button id="home-coins-stat" type="button">
+              <span>Монет</span>
+              <strong id="rank-coins">0</strong>
+            </button>
+            <button id="home-visits-stat" type="button">
+              <span>Посещений</span>
+              <strong id="rank-visits">0</strong>
+            </button>
+          </div>
+        </section>
+
+        <section class="rank-hint-panel" id="rank-hint-panel">
+          <span>Следующий шаг</span>
+          <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
+        </section>
+
+        <section class="quick-panel">
+          <button id="home-missions-card" class="quick-card quick-missions" type="button">
+            <span>🎯</span>
+            <strong>Миссии</strong>
+            <small>Daily reward ждёт</small>
+          </button>
+          <button id="home-series-card" class="quick-card quick-series" type="button">
+            <span>🏆</span>
+            <strong>Series CS2</strong>
+            <small>Следующий турнир</small>
+          </button>
+          <button id="home-clans-card" class="quick-card quick-clans" type="button">
+            <span>⚔️</span>
+            <strong>Клан</strong>
+            <small>Уровень и сундуки</small>
+          </button>
+          <button id="home-esport-card" class="quick-card quick-esport" type="button">
+            <span>📡</span>
+            <strong>E-sport</strong>
+            <small><i></i> LIVE</small>
+          </button>
+        </section>
+
+        <section class="profile-streak home-streak" aria-label="Серия входов">
+          <div class="profile-streak-head">
+            <span>🔥 Серия входов</span>
+            <strong><span id="profile-streak-days">0</span>/30</strong>
+          </div>
+          <div class="streak-track">
+            <span id="profile-streak-fill" class="streak-fill"></span>
+            <span class="streak-marker" data-day="3" style="left: 10%">
+              <i>🔥</i>
+              <b>3</b>
+            </span>
+            <span class="streak-marker" data-day="7" style="left: 23.333%">
+              <i>🔥</i>
+              <b>7</b>
+            </span>
+            <span class="streak-marker" data-day="14" style="left: 46.666%">
+              <i>🔥</i>
+              <b>14</b>
+            </span>
+            <span class="streak-marker" data-day="30" style="left: 100%">
+              <i>🔥</i>
+              <b>30</b>
+            </span>
+          </div>
+          <div class="streak-rewards" aria-hidden="true">
+            <span>+50</span>
+            <span>+150</span>
+            <span>+300</span>
+            <span>+500</span>
+          </div>
+        </section>
+
+        <section class="hero-panel">
+          <p class="label">Личный invite-пульт</p>
+          <h2>Зови друзей в клуб и смотри, сколько людей пришло по твоей ссылке.</h2>
+          <div class="score-line">
+            <span>За неделю</span>
+            <strong id="weekly-count">...</strong>
+          </div>
+          <div class="total-line">
+            <span>За всё время</span>
+            <strong id="all-time-count">...</strong>
+          </div>
+        </section>
+
+        <section class="awards-panel">
+          <div class="section-title">
+            <p class="label">Награды</p>
+            <h2>Призы недели</h2>
+          </div>
+          <div class="awards-grid" aria-label="Призы за рейтинг недели">
+            <div class="award-card">
+              <strong>1 место</strong>
+              <span>8 часов игры</span>
+            </div>
+            <div class="award-card">
+              <strong>2 место</strong>
+              <span>5 часов игры</span>
+            </div>
+            <div class="award-card">
+              <strong>3 место</strong>
+              <span>3 часа игры</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="link-panel">
+          <p class="label">Персональная ссылка</p>
+          <div class="invite-box" id="invite-link">Загрузка...</div>
+          <div class="actions">
+            <button id="copy-button" type="button">Скопировать</button>
+            <button id="share-button" type="button">Поделиться</button>
+          </div>
+        </section>
+
+        <section class="top-panel">
+          <div class="section-title">
+            <p class="label">Таблица</p>
+            <h2 id="top-title">Топ недели</h2>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Рейтинг приглашений">
+            <button id="weekly-tab" class="tab-button is-active" type="button" aria-selected="true">Неделя</button>
+            <button id="all-time-tab" class="tab-button" type="button" aria-selected="false">За всё время</button>
+          </div>
+          <ol id="top-list" class="top-list">
+            <li>Загрузка...</li>
+          </ol>
+        </section>
+      </div>
+
+      <div id="profile-view" class="app-view">
+        <section class="profile-summary-panel">
+          <div class="profile-summary-head">
+            <div>
+              <p class="label">Личный центр</p>
+              <h2>Профиль HardPoint</h2>
+            </div>
+            <img src="/assets/hardpoint-logo.png" alt="HardPoint">
+          </div>
+        </section>
+
+        <section class="profile-panel">
+          <div class="section-title">
+            <p class="label">Профиль</p>
+            <h2>Логин в клубе</h2>
+          </div>
+          <div class="login-form">
+            <input
+              id="club-login"
+              type="text"
+              maxlength="40"
+              autocomplete="off"
+              placeholder="Введите логин"
+              aria-label="Логин в клубе"
+            >
+            <button id="save-login-button" type="button">Сохранить</button>
+          </div>
+          <p class="panel-note">Этот логин нужен только для начисления наград.</p>
+        </section>
+
+        <section class="profile-empty-panel">
+          <p class="label">Ранги</p>
+          <div class="rank-list">
+            <span>🥉 Recruit — 0</span>
+            <span>🥈 Rookie — 10</span>
+            <span>🥇 Grinder — 20</span>
+            <span>💠 Veteran — 30</span>
+            <span>🔥 Elite — 40</span>
+            <span>👑 Legend — 50</span>
+          </div>
+        </section>
+      </div>
+
+      <div id="shop-view" class="app-view">
+        <section class="shop-panel">
+          <p class="label">Магазин</p>
+          <h2>Скоро здесь появятся награды за монеты.</h2>
+          <div class="shop-grid" aria-label="Будущие товары магазина">
+            <button class="shop-item" type="button" aria-label="Будущий приз 1">
+              <img src="/assets/prize.svg" alt="">
+            </button>
+            <button class="shop-item" type="button" aria-label="Будущий приз 2">
+              <img src="/assets/prize.svg" alt="">
+            </button>
+            <button class="shop-item" type="button" aria-label="Будущий приз 3">
+              <img src="/assets/prize.svg" alt="">
+            </button>
+            <button class="shop-item" type="button" aria-label="Будущий приз 4">
+              <img src="/assets/prize.svg" alt="">
+            </button>
+          </div>
+          <button id="secret-trigger" class="secret-trigger" type="button" aria-label="HardPoint secret">
+            <img src="/assets/hardpoint-logo.png" alt="">
+          </button>
+          <div id="secret-box" class="secret-box" aria-hidden="true">
+            <img src="/assets/hardpoint-logo.png" alt="HardPoint">
+            <div>
+              <p class="label">Secret drop</p>
+              <strong>HP-20COIN</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="league-view" class="app-view">
+        <section class="league-panel">
+          <article class="series-season-hero">
+            <div>
+              <p class="label"><span class="live-dot"></span> Открыта регистрация</p>
+              <h2>HardPoint Series Season 1</h2>
+              <span>CS2 · HardPoint Szczecin · призовые часы</span>
+            </div>
+            <div class="series-season-stats">
+              <strong>2</strong>
+              <small>формата</small>
+            </div>
+          </article>
+
+          <div class="league-tabs" role="tablist" aria-label="Разделы Series">
+            <button id="league-overview-tab" class="is-current" type="button" data-league-section="overview">Турниры</button>
+            <button id="league-register-tab" type="button" data-league-section="register">Регистрация</button>
+            <button id="league-table-tab" type="button" data-league-section="table">Таблица</button>
+            <button id="league-admin-tab" type="button" data-league-section="admin">Админ</button>
+          </div>
+
+          <article class="league-card league-hero-card" data-league-section="overview">
+            <div>
+              <p class="label">Статус</p>
+              <h3 id="league-role">Игрок</h3>
+            </div>
+            <strong id="league-xp">0 XP</strong>
+          </article>
+
+          <div id="league-overview-section" class="league-section is-active">
+            <article class="league-card league-next-card">
+              <div>
+                <p class="label">Следующий шаг</p>
+                <h2 id="league-next-title">Выбери действие</h2>
+                <p id="league-next-note" class="panel-note">Сохрани ник, вступи по коду или создай команду.</p>
+              </div>
+              <button id="league-next-button" type="button">Начать</button>
+            </article>
+
+            <div class="series-format-grid">
+              <button class="series-format-card series-format-card-5" type="button" data-series-format="5x5">
+                <span class="format-prize">8ч 🎮</span>
+                <small>CS2 · 5×5 · Регистрация открыта</small>
+                <strong>Full Squad Challenge</strong>
+                <em>👥 5 игроков · 📅 Вт 19:00 · BO1</em>
+                <i><b style="width: 38%"></b></i>
+                <span class="format-action">🎯 Зарегистрироваться</span>
+              </button>
+              <button class="series-format-card series-format-card-2" type="button" data-series-format="2x2">
+                <span class="format-prize">4ч 🎮</span>
+                <small>CS2 · 2×2 · Регистрация открыта</small>
+                <strong>Duo Strike</strong>
+                <em>👥 2 игрока · 📅 Чт 19:00 · BO1</em>
+                <i><b style="width: 25%"></b></i>
+                <span class="format-action">🎯 Зарегистрироваться</span>
+              </button>
+            </div>
+
+            <article class="league-card">
+              <p class="label">Моя команда</p>
+              <div id="league-my-team" class="league-list compact"></div>
+            </article>
+
+            <article class="league-card">
+              <p class="label">Открытые серии</p>
+              <div id="league-seasons" class="league-pill-list"></div>
+            </article>
+          </div>
+
+          <div id="league-register-section" class="league-section">
+            <article class="series-wizard-head">
+              <button id="series-back-to-formats" type="button">‹</button>
+              <div>
+                <p class="label">Регистрация</p>
+                <h2 id="series-selected-title">Full Squad Challenge</h2>
+                <span id="series-selected-badge">🛡️ 5×5 · Формат выбран</span>
+              </div>
+            </article>
+            <div class="series-step-pips" aria-label="Шаги регистрации">
+              <span class="is-active"></span>
+              <span></span>
+              <span></span>
+            </div>
+            <article class="league-card">
+              <div class="section-title compact-title">
+                <p class="label">Шаг 1</p>
+                <h2>Игровой ник в CS2</h2>
+              </div>
+              <p class="panel-note">Это имя будет в таблице турнира и турнирной сетке.</p>
+              <div class="league-form">
+                <select id="league-register-game" aria-label="Дисциплина">
+                  <option value="cs2">CS2</option>
+                </select>
+                <input id="league-register-nick" type="text" maxlength="40" placeholder="Игровой ник">
+                <button id="league-register-button" type="button">Сохранить</button>
+              </div>
+            </article>
+
+            <article id="league-join-card" class="league-card">
+              <div class="section-title compact-title">
+                <p class="label">Шаг 2</p>
+                <h2>Способ участия</h2>
+              </div>
+              <p class="panel-note">Если капитан уже создал команду — введи код. Если собираешь свой состав — создай команду ниже.</p>
+              <div id="league-join-form" class="league-form">
+                <input id="league-join-code" type="text" maxlength="9" placeholder="HL-XXXXXX" autocomplete="off">
+                <button id="league-join-button" type="button">🔗 Вступить по коду</button>
+              </div>
+              <p id="league-join-note" class="panel-note">Сначала укажи игровой ник, чтобы вступить в команду.</p>
+            </article>
+
+            <article class="league-card">
+              <div class="section-title compact-title">
+                <p class="label">Капитан</p>
+                <h2>Создать команду</h2>
+              </div>
+              <div class="league-form">
+                <select id="league-team-game" aria-label="Дисциплина команды">
+                  <option value="cs2">CS2</option>
+                </select>
+                <div id="league-team-format-wrap" class="league-format-wrap">
+                  <p class="panel-note">Формат CS2</p>
+                  <select id="league-team-format" aria-label="Формат CS2">
+                    <option value="">Выбери формат</option>
+                    <option value="5x5">5×5</option>
+                    <option value="2x2">2×2</option>
+                  </select>
+                </div>
+                <input id="league-team-name" type="text" maxlength="40" placeholder="Название команды">
+                <button id="league-create-team-button" type="button">✅ Подать заявку</button>
+              </div>
+              <p class="panel-note">Команда попадёт на проверку админу.</p>
+            </article>
+          </div>
+
+          <div id="league-table-section" class="league-section">
+            <article class="league-card">
+              <div class="section-title compact-title">
+                <p class="label">Команды</p>
+                <h2>Заявки и составы</h2>
+              </div>
+              <div id="league-teams-list" class="league-list"></div>
+            </article>
+
+            <article class="league-card">
+              <div class="section-title compact-title">
+                <p class="label">Таблица</p>
+                <h2>Рейтинг сезона</h2>
+              </div>
+              <div id="league-standings-tabs" class="league-standings-tabs"></div>
+              <div id="league-standings-meta" class="league-standings-meta"></div>
+              <ol id="league-standings-list" class="top-list"></ol>
+            </article>
+          </div>
+
+          <div id="league-admin-section" class="league-section">
+            <article id="league-admin-panel" class="league-card" hidden>
+              <div class="section-title compact-title">
+                <p class="label">Админ</p>
+                <h2>Заявки команд</h2>
+              </div>
+              <div id="league-pending-list" class="league-list"></div>
+            </article>
+            <article id="league-admin-empty" class="league-card">
+              <p class="label">Админ</p>
+              <p class="panel-note">Этот раздел виден только администратору Series.</p>
+            </article>
+          </div>
+
+          <div id="league-invite-sheet" class="league-invite-sheet" hidden>
+            <article class="league-invite-card">
+              <button id="league-invite-close" class="sheet-close" type="button" aria-label="Закрыть">×</button>
+              <p class="label">Команда</p>
+              <h2>Пригласи игрока</h2>
+              <span>Код команды</span>
+              <strong id="league-invite-code">HL-XXXXXX</strong>
+              <button id="league-copy-code-button" type="button">Скопировать код</button>
+              <button id="league-share-code-button" type="button">Поделиться в Telegram</button>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <div id="missions-view" class="app-view">
+        <section class="missions-panel">
+          <div class="section-title">
+            <p class="label">Миссии</p>
+            <h2>Забирай HP Coins каждый день.</h2>
+          </div>
+
+          <div class="mission-list">
+            <article class="mission-card">
+              <div class="mission-main">
+                <p class="label">Daily</p>
+                <h3>🤖 Забери Daily Reward</h3>
+                <span>Награда: 10–50 HP Coins</span>
+              </div>
+              <button id="daily-reward-button" type="button">Забрать</button>
+              <p id="daily-reward-status" class="mission-status">Доступно сегодня.</p>
+            </article>
+
+            <article class="mission-card">
+              <div class="mission-main">
+                <p class="label">Вход</p>
+                <h3>📲 Зайди в бота</h3>
+                <span>Награда: 5 HP Coins</span>
+              </div>
+              <button id="visit-reward-button" type="button">Забрать</button>
+              <p id="visit-reward-status" class="mission-status">Доступно сегодня.</p>
+            </article>
+          </div>
+
+          <div class="streak-card">
+            <div>
+              <p class="label">Серия</p>
+              <h3><span id="mission-streak">0</span> дней подряд</h3>
+            </div>
+            <div class="streak-row">
+              <span>3 дня подряд</span>
+              <strong>+50 Coins</strong>
+            </div>
+            <div class="streak-row">
+              <span>7 дней подряд</span>
+              <strong>+150 Coins</strong>
+            </div>
+            <div class="streak-row">
+              <span>14 дней подряд</span>
+              <strong>+300 Coins</strong>
+            </div>
+            <div class="streak-row">
+              <span>30 дней подряд</span>
+              <strong>+500 Coins</strong>
+            </div>
+          </div>
+
+          <div class="social-missions">
+            <p class="label">Социальные миссии</p>
+            <article class="mission-card social-mission-card">
+              <div class="mission-main">
+                <h3>Подпишись на Instagram</h3>
+                <span>Награда: 500 HP Coins</span>
+              </div>
+              <div class="mission-actions">
+                <a href="https://www.instagram.com/hardpoint_szczecin" target="_blank" rel="noreferrer">Открыть</a>
+                <button id="instagram-reward-button" type="button">Отправить</button>
+              </div>
+              <p id="instagram-reward-status" class="mission-status">После подписки отправь миссию на проверку.</p>
+            </article>
+
+            <article class="mission-card social-mission-card">
+              <div class="mission-main">
+                <h3>Подпишись на Discord</h3>
+                <span>Награда: 500 HP Coins</span>
+              </div>
+              <div class="mission-actions">
+                <a href="https://discord.gg/8zJUFdjA" target="_blank" rel="noreferrer">Открыть</a>
+                <button id="discord-reward-button" type="button">Отправить</button>
+              </div>
+              <p id="discord-reward-status" class="mission-status">После подписки отправь миссию на проверку.</p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <div id="clans-view" class="app-view">
+        <section class="clans-panel">
+          <div class="section-title">
+            <p class="label">Кланы</p>
+            <h2>Собирай команду и бейте сундуки недели.</h2>
+          </div>
+
+          <div id="clan-gate" class="clan-gate">
+            <strong>Кланы открываются с Rookie</strong>
+            <span>Нужно 10 приглашений, чтобы вступить в клан.</span>
+          </div>
+
+          <div id="clan-current" class="clan-current" hidden>
+            <article class="clan-card">
+              <div class="clan-card-head">
+                <div>
+                  <p class="label">Мой клан</p>
+                  <h3 id="clan-name">HardPoint</h3>
+                </div>
+                <strong id="clan-level">LVL 1</strong>
+              </div>
+              <div class="clan-stats">
+                <div><span>Места</span><strong id="clan-slots">0/5</strong></div>
+                <div><span>Неделя</span><strong id="clan-weekly-xp">0 XP</strong></div>
+                <div><span>Месяц</span><strong id="clan-monthly-xp">0 XP</strong></div>
+                <div><span>Всего</span><strong id="clan-total-xp">0 XP</strong></div>
+              </div>
+              <div class="clan-level-track">
+                <span id="clan-level-fill"></span>
+              </div>
+              <p class="panel-note" id="clan-next-level">До следующего уровня: 0 XP</p>
+            </article>
+
+            <article class="clan-card">
+              <div class="clan-card-head">
+                <div>
+                  <p class="label">Клановые сундуки</p>
+                  <h3 id="clan-chest-title">Нет сундука</h3>
+                </div>
+                <strong id="clan-chest-xp">0 XP</strong>
+              </div>
+              <div class="clan-chest-track">
+                <span id="clan-chest-fill"></span>
+                <span class="clan-chest-marker" data-chest="common" style="left: 14.28%"><b>Common</b><i>500 / 5</i></span>
+                <span class="clan-chest-marker" data-chest="rare" style="left: 42.85%"><b>Rare</b><i>1500 / 20</i></span>
+                <span class="clan-chest-marker" data-chest="epic" style="left: 100%"><b>Epic</b><i>3500 / 40</i></span>
+              </div>
+              <p class="panel-note" id="clan-chest-note">До Common осталось 500 XP.</p>
+            </article>
+
+            <article class="clan-card">
+              <div class="clan-card-head">
+                <div>
+                  <p class="label">Активность</p>
+                  <h3>Daily Clan Check-in</h3>
+                </div>
+                <strong id="clan-daily-goal">0/3</strong>
+              </div>
+              <button id="clan-checkin-button" type="button">Отметиться за клан</button>
+              <p class="panel-note" id="clan-checkin-status">+10 Clan XP за отметку.</p>
+            </article>
+
+            <article class="clan-card">
+              <div class="clan-card-head">
+                <div>
+                  <p class="label">Мой вклад</p>
+                  <h3 id="clan-my-role">Участник</h3>
+                </div>
+                <strong id="clan-my-weekly">0 XP</strong>
+              </div>
+              <div class="clan-stats">
+                <div><span>Всего</span><strong id="clan-my-total">0 XP</strong></div>
+                <div><span>Check-in</span><strong id="clan-my-checkins">0</strong></div>
+                <div><span>Сундук</span><strong id="clan-my-active">0 XP</strong></div>
+              </div>
+            </article>
+
+            <article class="clan-card">
+              <div class="clan-card-head">
+                <div>
+                  <p class="label">Код клана</p>
+                  <h3 id="clan-code">HP-0000</h3>
+                </div>
+                <button id="copy-clan-code-button" type="button">Копировать</button>
+              </div>
+            </article>
+
+            <article class="clan-card">
+              <p class="label">Участники</p>
+              <ol id="clan-members-list" class="clan-list"></ol>
+            </article>
+          </div>
+
+          <div id="clan-join" class="clan-join">
+            <article class="clan-card">
+              <p class="label">Создание</p>
+              <div class="clan-form">
+                <input id="new-clan-name" type="text" maxlength="28" placeholder="Название клана">
+                <label class="clan-checkbox">
+                  <input id="new-clan-public" type="checkbox" checked>
+                  <span>Публичный</span>
+                </label>
+                <button id="create-clan-button" type="button">Создать клан</button>
+              </div>
+              <p class="panel-note" id="create-clan-note">Создание доступно с ранга Legend.</p>
+            </article>
+
+            <article class="clan-card">
+              <p class="label">Вступить по коду</p>
+              <div class="clan-form">
+                <input id="join-clan-code" type="text" maxlength="8" placeholder="HP-7KQ2">
+                <button id="join-clan-code-button" type="button">Вступить</button>
+              </div>
+            </article>
+
+            <article class="clan-card">
+              <p class="label">Доступные кланы</p>
+              <div id="public-clans-list" class="public-clans-list"></div>
+            </article>
+          </div>
+
+          <section class="clan-card">
+            <div class="section-title">
+              <p class="label">Рейтинг</p>
+              <h2 id="clan-top-title">Топ кланов недели</h2>
+            </div>
+            <div class="tabs" role="tablist" aria-label="Рейтинг кланов">
+              <button id="clan-weekly-tab" class="tab-button is-active" type="button" aria-selected="true">Неделя</button>
+              <button id="clan-monthly-tab" class="tab-button" type="button" aria-selected="false">Месяц</button>
+            </div>
+            <ol id="clan-top-list" class="top-list"></ol>
+          </section>
+        </section>
+      </div>
+
+      <div id="esport-view" class="app-view">
+        <section class="esport-panel">
+          <div class="section-title">
+            <p class="label">E-sport</p>
+            <h2>HardPoint teams</h2>
+          </div>
+          <button id="team-finals-button" class="team-button" type="button" aria-expanded="false">Team The Finals</button>
+
+          <div id="team-finals-panel" class="team-panel" aria-hidden="true">
+            <div class="team-roster" aria-label="Игроки Team The Finals">
+              <button id="nama-icon-button" class="player-icon is-filled" type="button" aria-expanded="false" aria-label="Открыть профиль Nama">
+                <img src="/assets/nama-profile.png" alt="">
+                <span>Nama</span>
+              </button>
+              <button class="player-icon" type="button" aria-label="Свободный слот игрока">
+                <span class="player-silhouette" aria-hidden="true"></span>
+              </button>
+              <button class="player-icon" type="button" aria-label="Свободный слот игрока">
+                <span class="player-silhouette" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div id="nama-profile-panel" class="player-profile-panel" aria-hidden="true">
+              <article class="player-card">
+                <div class="player-photo-wrap">
+                  <img src="/assets/nama-profile.png" alt="Nama" class="player-photo">
+                </div>
+                <div class="player-info">
+                  <p class="label">The Finals</p>
+                  <h2>Nama</h2>
+                  <p class="player-tag">Nama#0366</p>
+                  <div class="player-rank">
+                    <span>Current league</span>
+                    <strong>Diamond 2</strong>
+                  </div>
+                  <div class="player-stats">
+                    <div>
+                      <span>Current rank</span>
+                      <strong>699</strong>
+                    </div>
+                    <div>
+                      <span>Rank score</span>
+                      <strong>47 003</strong>
+                    </div>
+                    <div>
+                      <span>Highest rank</span>
+                      <strong>295</strong>
+                    </div>
+                    <div>
+                      <span>Win rate</span>
+                      <strong>58%</strong>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <section class="player-detail-panel">
+                <p class="label">Статистика</p>
+                <div class="detail-grid">
+                  <span>Highest league</span><strong>Diamond 2</strong>
+                  <span>Lowest league</span><strong>Platinum 4</strong>
+                  <span>Highest score</span><strong>47 212</strong>
+                  <span>Lowest score</span><strong>30 258</strong>
+                  <span>Win streak</span><strong>13 games</strong>
+                  <span>Loss streak</span><strong>5 games</strong>
+                  <span>Games played</span><strong>242</strong>
+                  <span>Games won</span><strong>140</strong>
+                  <span>Games lost</span><strong>102</strong>
+                  <span>Days active</span><strong>35 / 70</strong>
+                  <span>Best day</span><strong>28 May 2026 / +3 104</strong>
+                  <span>Worst day</span><strong>4 Apr 2026 / -1 839</strong>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <p class="status" id="status"></p>
+    </main>
+
+          <script src="/app.js?v=39"></script>
+  </body>
+</html>
