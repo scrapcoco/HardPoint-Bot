@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HardPoint Live</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08090d;color:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+.header{background:#0f1015;border-bottom:1px solid rgba(255,255,255,.08);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header-left{display:flex;align-items:center;gap:8px}
+.hp-logo{background:#ffdd3d;border-radius:6px;width:28px;height:24px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#141414}
+.header-title{font-size:13px;font-weight:700;color:#f7f7f8}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(255,95,109,.15);border:1px solid rgba(255,95,109,.3);border-radius:999px;padding:3px 10px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#ff5f6d;animation:pulse 1.4s ease-in-out infinite}
+.live-text{color:#ff5f6d;font-size:11px;font-weight:900}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.format-tabs{display:flex;gap:8px;padding:12px 14px;background:#0f1015;border-bottom:1px solid rgba(255,255,255,.06)}
+.tab{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+.tab.active{background:#ffdd3d;border-color:#ffdd3d;color:#141414}
+
+.status-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,.06)}
+.stat{padding:10px 0;text-align:center}
+.stat-val{font-size:14px;font-weight:900;color:#f7f7f8}
+.stat-label{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px}
+
+.bracket-scroll{overflow-x:auto;padding:14px}
+.bracket{display:flex;gap:4px;min-width:320px;align-items:flex-start}
+.round-col{flex-shrink:0}
+.round-header{color:rgba(255,255,255,.35);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-bottom:10px;padding:0 4px}
+
+.match-card{margin:6px 4px;background:#0f1015;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;min-width:120px}
+.match-status-bar{padding:3px 8px;font-size:10px;font-weight:700;text-align:center}
+.status-live{background:rgba(255,221,61,.12);color:#ffdd3d}
+.status-done{background:rgba(0,229,192,.08);color:rgba(0,229,192,.8)}
+.status-pending{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.status-bye{background:rgba(100,100,255,.08);color:rgba(150,150,255,.7)}
+
+.team-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;gap:6px}
+.team-row.winner{background:rgba(0,229,192,.1)}
+.team-row.loser{opacity:.45}
+.team-row.tbd{opacity:.3}
+.team-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78px;color:#f7f7f8}
+.team-row.winner .team-name{color:#00e5c0}
+.team-score{font-size:13px;font-weight:900;min-width:18px;text-align:center;color:rgba(255,255,255,.4)}
+.team-row.winner .team-score{color:#00e5c0}
+.divider{height:1px;background:rgba(255,255,255,.06);margin:0}
+
+.connector{width:16px;flex-shrink:0;align-self:stretch;display:flex;flex-direction:column;justify-content:space-around}
+.conn-line{width:16px;height:1px;background:rgba(255,255,255,.1)}
+
+.champion-block{margin:6px 4px;background:rgba(255,221,61,.08);border:1px solid rgba(255,221,61,.25);border-radius:10px;padding:14px 10px;text-align:center;min-width:120px}
+.crown{font-size:22px;margin-bottom:6px}
+.champ-label{font-size:10px;font-weight:900;color:rgba(255,221,61,.6);letter-spacing:.5px;margin-bottom:4px}
+.champ-name{font-size:13px;font-weight:900;color:#ffdd3d}
+.champ-tbd{font-size:12px;color:rgba(255,221,61,.4)}
+
+.registration-state{padding:32px 20px;text-align:center}
+.reg-icon{font-size:36px;margin-bottom:12px}
+.reg-title{font-size:16px;font-weight:700;color:#f7f7f8;margin-bottom:8px}
+.reg-sub{font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;margin-bottom:16px}
+.reg-count{display:inline-block;background:rgba(255,221,61,.1);border:1px solid rgba(255,221,61,.25);border-radius:999px;padding:6px 18px;font-size:13px;font-weight:700;color:#ffdd3d}
+
+.loading{padding:40px 20px;text-align:center;color:rgba(255,255,255,.4);font-size:14px}
+
+.error-state{padding:32px 20px;text-align:center}
+.error-icon{font-size:32px;margin-bottom:10px}
+.error-text{color:rgba(255,255,255,.4);font-size:13px}
+
+.back-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <button class="back-btn" onclick="history.back()">&#8592; Назад</button>
+  </div>
+  <div id="liveBadge" class="live-badge" style="display:none">
+    <div class="live-dot"></div>
+    <span class="live-text">LIVE</span>
+  </div>
+</div>
+
+<div class="format-tabs">
+  <button class="tab active" onclick="switchFormat('5x5')" id="tab5x5">CS2 5×5</button>
+  <button class="tab" onclick="switchFormat('2x2')" id="tab2x2">CS2 2×2</button>
+</div>
+
+<div id="statusBar" class="status-bar" style="display:none">
+  <div class="stat"><div class="stat-val" id="statTeams">—</div><div class="stat-label">Команд</div></div>
+  <div class="stat"><div class="stat-val" id="statMatches">—</div><div class="stat-label">Матчей сыграно</div></div>
+  <div class="stat"><div class="stat-val" id="statRounds">—</div><div class="stat-label">Раундов</div></div>
+</div>
+
+<div id="content"><div class="loading">Загрузка сетки...</div></div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) tg.ready();
+
+const WEBAPP_URL = '';
+let currentFormat = '5x5';
+let refreshTimer = null;
+
+function switchFormat(fmt) {
+  currentFormat = fmt;
+  document.getElementById('tab5x5').classList.toggle('active', fmt === '5x5');
+  document.getElementById('tab2x2').classList.toggle('active', fmt === '2x2');
+  loadBracket();
+}
+
+function roundLabel(rnd, total) {
+  if (rnd === total) return 'Финал';
+  if (rnd === total - 1) return '1/2 финала';
+  if (rnd === total - 2) return '1/4 финала';
+  if (rnd === total - 3) return '1/8 финала';
+  return 'Раунд ' + rnd;
+}
+
+function renderBracket(data) {
+  const content = document.getElementById('content');
+  const statusBar = document.getElementById('statusBar');
+  const liveBadge = document.getElementById('liveBadge');
+
+  if (!data.bracket) {
+    liveBadge.style.display = 'none';
+    statusBar.style.display = 'none';
+    content.innerHTML = `
+      <div class="registration-state">
+        <div class="reg-icon">📋</div>
+        <div class="reg-title">Идёт регистрация</div>
+        <div class="reg-sub">Сетка будет сгенерирована в понедельник в 04:00 по польскому времени</div>
+        <div class="reg-count">${data.registeredTeams || 0} команд зарегистрировано</div>
+      </div>`;
+    return;
+  }
+
+  const b = data.bracket;
+  const isActive = b.status === 'active';
+  const isFinished = b.status === 'finished';
+
+  liveBadge.style.display = isActive ? 'flex' : 'none';
+
+  const rounds = b.rounds;
+  const roundNums = Object.keys(rounds).map(Number).sort((a,z) => a-z);
+  const totalRounds = roundNums.length;
+
+  statusBar.style.display = 'grid';
+  document.getElementById('statTeams').textContent = b.registeredTeams || '—';
+  document.getElementById('statMatches').textContent = `${b.playedMatches}/${b.totalMatches}`;
+  document.getElementById('statRounds').textContent = totalRounds;
+
+  let html = '<div class="bracket-scroll"><div class="bracket">';
+
+  roundNums.forEach((rnd, ri) => {
+    const matches = rounds[rnd];
+    const isFinal = rnd === totalRounds;
+    const label = roundLabel(rnd, totalRounds);
+
+    html += `<div class="round-col"><div class="round-header">${label}</div>`;
+
+    if (isFinal && isFinished && b.winnerId) {
+      html += renderChampion(b, matches);
+    } else {
+      matches.forEach(m => { html += renderMatch(m); });
+    }
+
+    html += '</div>';
+
+    if (ri < roundNums.length - 1) {
+      html += '<div class="connector"></div>';
+    }
+  });
+
+  if (isFinished && b.winnerId) {
+    html += `<div class="round-col"><div class="round-header">Чемпион</div>${renderChampionBlock(b)}</div>`;
+  } else if (isActive) {
+    html += `<div class="round-col"><div class="round-header">Чемпион</div><div class="champion-block"><div class="crown">🏆</div><div class="champ-tbd">ждём финала</div></div></div>`;
+  }
+
+  html += '</div></div>';
+  content.innerHTML = html;
+}
+
+function renderMatch(m) {
+  const t1 = m.team1;
+  const t2 = m.team2;
+  const w = m.winner;
+
+  let statusClass = 'status-pending';
+  let statusText = 'Ожидается';
+  if (m.status === 'played') { statusClass = 'status-done'; statusText = 'Завершён'; }
+  else if (m.status === 'bye') { statusClass = 'status-bye'; statusText = 'Автопроход'; }
+
+  const t1Class = w ? (w.id === (t1 && t1.id) ? 'winner' : 'loser') : (t1 ? '' : 'tbd');
+  const t2Class = w ? (w.id === (t2 && t2.id) ? 'winner' : 'loser') : (t2 ? '' : 'tbd');
+
+  return `
+    <div class="match-card">
+      <div class="match-status-bar ${statusClass}">${statusText}</div>
+      <div class="team-row ${t1Class}">
+        <span class="team-name">${t1 ? t1.name : 'TBD'}</span>
+        <span class="team-score">${m.score1 !== null && m.score1 !== undefined ? m.score1 : '—'}</span>
+      </div>
+      <div class="divider"></div>
+      <div class="team-row ${t2Class}">
+        <span class="team-name">${t2 ? t2.name : 'TBD'}</span>
+        <span class="team-score">${m.score2 !== null && m.score2 !== undefined ? m.score2 : '—'}</span>
+      </div>
+    </div>`;
+}
+
+function renderChampionBlock(b) {
+  return `
+    <div class="champion-block">
+      <div class="crown">🏆</div>
+      <div class="champ-label">ЧЕМПИОН</div>
+      <div class="champ-name" id="champName">—</div>
+    </div>`;
+}
+
+function renderChampion(b, matches) {
+  let html = '';
+  matches.forEach(m => { html += renderMatch(m); });
+  return html;
+}
+
+async function loadBracket() {
+  document.getElementById('content').innerHTML = '<div class="loading">Загрузка...</div>';
+  document.getElementById('statusBar').style.display = 'none';
+  document.getElementById('liveBadge').style.display = 'none';
+
+  try {
+    const base = window.location.origin;
+    const res = await fetch(`${base}/api/bracket?format=${currentFormat}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderBracket(data);
+
+    // Auto-refresh every 30s if active
+    if (refreshTimer) clearTimeout(refreshTimer);
+    if (data.bracket && data.bracket.status === 'active') {
+      refreshTimer = setTimeout(loadBracket, 30000);
+    }
+  } catch(e) {
+    document.getElementById('content').innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <div class="error-text">Не удалось загрузить сетку.<br>Попробуй позже.</div>
+      </div>`;
+  }
+}
+
+loadBracket();
+</script>
+</body>
+</html>
