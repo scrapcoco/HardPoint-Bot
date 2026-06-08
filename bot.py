@@ -15,6 +15,7 @@ from typing import Dict, List, Optional
 from urllib.parse import parse_qsl
 from zoneinfo import ZoneInfo
 
+import aiohttp as aiohttp_client
 from aiohttp import web
 from telegram import Bot, ChatInviteLink, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.constants import ChatMemberStatus
@@ -34,6 +35,9 @@ DB_PATH = os.getenv("DB_PATH", "invites.sqlite3")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = os.getenv("GROUP_ID")
 CAPTAIN_GROUP_ID = os.getenv("CAPTAIN_GROUP_ID", "")
+FACEIT_API_KEY = os.getenv("FACEIT_API_KEY", "")
+FACEIT_HUB_ID = os.getenv("FACEIT_HUB_ID", "")
+FACEIT_HUB_URL = f"https://www.faceit.com/ru/hub/{FACEIT_HUB_ID}" if FACEIT_HUB_ID else ""
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 WEBAPP_HOST = os.getenv("WEBAPP_HOST", "127.0.0.1")
 WEBAPP_PORT = int(os.getenv("WEBAPP_PORT", "8080"))
@@ -46,9 +50,9 @@ TOURNAMENT_BRACKET_HOUR = 4
 TOURNAMENT_BRACKET_MINUTE = 0
 VALID_BRACKET_SIZES = [4, 8, 16]
 DEFAULT_WEEKLY_PRIZES = [
-    os.getenv("WEEKLY_PRIZE_1", "8 часов игры"),
-    os.getenv("WEEKLY_PRIZE_2", "5 часов игры"),
-    os.getenv("WEEKLY_PRIZE_3", "3 часа игры"),
+    os.getenv("WEEKLY_PRIZE_1", "8 \u0447\u0430\u0441\u043e\u0432 \u0438\u0433\u0440\u044b"),
+    os.getenv("WEEKLY_PRIZE_2", "5 \u0447\u0430\u0441\u043e\u0432 \u0438\u0433\u0440\u044b"),
+    os.getenv("WEEKLY_PRIZE_3", "3 \u0447\u0430\u0441\u0430 \u0438\u0433\u0440\u044b"),
 ]
 INVITE_COIN_REWARD = 20
 STREAK_BONUSES = {
@@ -207,6 +211,7 @@ def init_db() -> None:
                 tg_id INTEGER NOT NULL UNIQUE,
                 username TEXT NOT NULL DEFAULT '',
                 game_nick_cs2 TEXT NOT NULL DEFAULT '',
+                faceit_nickname TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL DEFAULT 'player',
                 xp INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL
@@ -335,6 +340,7 @@ def init_db() -> None:
         ensure_user_profile_columns(connection)
         ensure_league_format_columns(connection)
         ensure_league_member_columns(connection)
+        ensure_league_user_faceit_column(connection)
         ensure_tournament_indexes(connection)
         ensure_weekly_period_start(connection)
         ensure_default_league_seasons(connection)
@@ -344,6 +350,15 @@ def init_db() -> None:
 def ensure_tournament_indexes(connection: sqlite3.Connection) -> None:
     connection.execute("CREATE INDEX IF NOT EXISTS idx_tournament_season ON tournaments (season_id)")
     connection.execute("CREATE INDEX IF NOT EXISTS idx_bracket_tournament ON tournament_bracket_matches (tournament_id, round)")
+
+
+def ensure_league_user_faceit_column(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(league_users)").fetchall()
+    }
+    if "faceit_nickname" not in columns:
+        connection.execute("ALTER TABLE league_users ADD COLUMN faceit_nickname TEXT NOT NULL DEFAULT ''")
 
 
 def ensure_user_profile_columns(connection: sqlite3.Connection) -> None:
@@ -454,6 +469,25 @@ def ensure_league_member_columns(connection: sqlite3.Connection) -> None:
         ON league_teams (invite_token)
         """
     )
+
+
+# ── FACEIT INTEGRATION ──
+
+async def faceit_get_player(nickname: str) -> Optional[Dict]:
+    """Verify FACEIT nickname exists and return player data."""
+    if not FACEIT_API_KEY:
+        return None
+    url = f"https://open.faceit.com/data/v4/players?nickname={nickname}"
+    headers = {"Authorization": f"Bearer {FACEIT_API_KEY}"}
+    try:
+        async with aiohttp_client.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=aiohttp_client.ClientTimeout(total=10)) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                return None
+    except Exception:
+        logging.exception("FACEIT API error for nickname %s", nickname)
+        return None
 
 
 def previous_weekly_reset(now: Optional[datetime] = None) -> datetime:
@@ -1343,6 +1377,7 @@ def serialize_league_team(connection: sqlite3.Connection, row: sqlite3.Row) -> D
                 "tgId": int(member["tg_id"]),
                 "username": member["username"],
                 "nick": member["game_nick_cs2"],
+                "faceitNick": member["faceit_nickname"],
             }
             for member in members
         ],
@@ -1476,7 +1511,9 @@ def serialize_league(connection: sqlite3.Connection, user: Dict[str, object]) ->
             "role": "admin" if is_league_admin(connection, tg_id) else league_user["role"],
             "xp": int(league_user["xp"]),
             "gameNickCs2": league_user["game_nick_cs2"],
+            "faceitNickname": league_user["faceit_nickname"],
             "isAdmin": is_league_admin(connection, tg_id),
+            "faceitHubUrl": FACEIT_HUB_URL,
         },
         "seasons": [
             {
@@ -1503,7 +1540,7 @@ def serialize_league(connection: sqlite3.Connection, user: Dict[str, object]) ->
     }
 
 
-# ── TOURNAMENT LOGIC ──
+# \u2500\u2500 TOURNAMENT LOGIC \u2500\u2500
 
 def get_or_create_tournament(connection: sqlite3.Connection, season_id: int, fmt: str) -> sqlite3.Row:
     week_start = weekly_period_start()
@@ -1965,7 +2002,7 @@ async def whats_new(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "\u0427\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u0432 HardPoint:\n\n"
         "- \u0422\u0443\u0440\u043d\u0438\u0440\u043d\u0430\u044f \u0441\u0435\u0442\u043a\u0430 \u0433\u0435\u043d\u0435\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u043a\u0430\u0436\u0434\u044b\u0439 \u043f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0432 04:00\n"
         "- Live \u0441\u0435\u0442\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432\u0441\u0435\u043c \u0432 \u043c\u0435\u043d\u044e \u0431\u043e\u0442\u0430\n"
-        "- \u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f \u0434\u043e \u0432\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u044f 23:59\n\n"
+        "- FACEIT \u0438\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044f \u2014 \u0432\u0435\u0440\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f \u043d\u0438\u043a\u043d\u0435\u0439\u043c\u0430 \u043f\u0440\u0438 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438\n\n"
         "\u041a\u043e\u043c\u0430\u043d\u0434\u044b:\n"
         "/link - \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430\n"
         "/stats - \u043c\u043e\u0438 \u0441\u0447\u0435\u0442\u0447\u0438\u043a\u0438\n"
@@ -2341,11 +2378,19 @@ async def api_league_register(request: web.Request) -> web.Response:
         raise web.HTTPBadRequest(reason="\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u0434\u0430\u043d\u043d\u044b\u0445") from error
     game = normalize_league_game(payload.get("game"))
     nick = normalize_league_name(payload.get("nick"), "\u041d\u0438\u043a")
+    faceit_nick = str(payload.get("faceitNick") or "").strip()
+
+    # Verify FACEIT nickname if provided
+    if faceit_nick and FACEIT_API_KEY:
+        player_data = await faceit_get_player(faceit_nick)
+        if not player_data:
+            raise web.HTTPBadRequest(reason=f"FACEIT \u043d\u0438\u043a\u043d\u0435\u0439\u043c \u00ab{faceit_nick}\u00bb \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c")
+
     with closing(db()) as connection:
         league_user = ensure_league_user(connection, user)
         connection.execute(
-            "UPDATE league_users SET game_nick_cs2 = ? WHERE id = ?",
-            (nick, int(league_user["id"])),
+            "UPDATE league_users SET game_nick_cs2 = ?, faceit_nickname = ? WHERE id = ?",
+            (nick, faceit_nick, int(league_user["id"])),
         )
         data = serialize_league(connection, user)
         connection.commit()
@@ -2385,6 +2430,21 @@ async def api_league_create_team(request: web.Request) -> web.Response:
             connection.execute("UPDATE league_users SET role = 'captain' WHERE id = ?", (int(league_user["id"]),))
         data = serialize_league(connection, user)
         connection.commit()
+
+        # Send FACEIT Hub link to captain
+        if FACEIT_HUB_URL:
+            try:
+                tg_id = int(league_user["tg_id"])
+                hub_msg = (
+                    f"\u0422\u0432\u043e\u044f \u043a\u043e\u043c\u0430\u043d\u0434\u0430 \u00ab{name}\u00bb \u0441\u043e\u0437\u0434\u0430\u043d\u0430!\n\n"
+                    f"\ud83c\udfae \u0412\u0441\u0442\u0443\u043f\u0438 \u0432 HardPoint Hub \u043d\u0430 FACEIT:\n{FACEIT_HUB_URL}\n\n"
+                    "\u041c\u0430\u0442\u0447\u0438 \u0442\u0443\u0440\u043d\u0438\u0440\u0430 \u0431\u0443\u0434\u0443\u0442 \u043f\u0440\u043e\u0445\u043e\u0434\u0438\u0442\u044c \u0447\u0435\u0440\u0435\u0437 FACEIT."
+                )
+                application: Application = request.app["telegram_application"]
+                await application.bot.send_message(chat_id=tg_id, text=hub_msg)
+            except Exception:
+                logging.exception("Failed to send FACEIT hub link to captain")
+
         return web.json_response({"ok": True, "league": data})
 
 
@@ -2678,6 +2738,27 @@ async def api_bracket_result(request: web.Request) -> web.Response:
         return web.json_response({"ok": True, "bracket": bracket})
 
 
+async def api_faceit_verify(request: web.Request) -> web.Response:
+    """Verify FACEIT nickname and return player info"""
+    user_from_init_data(request)
+    nickname = request.query.get("nickname", "").strip()
+    if not nickname:
+        raise web.HTTPBadRequest(reason="\u0423\u043a\u0430\u0436\u0438\u0442\u0435 FACEIT \u043d\u0438\u043a\u043d\u0435\u0439\u043c")
+    player = await faceit_get_player(nickname)
+    if not player:
+        return web.json_response({"ok": False, "message": "\u041d\u0438\u043a\u043d\u0435\u0439\u043c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u043d\u0430 FACEIT"})
+    return web.json_response({
+        "ok": True,
+        "player": {
+            "nickname": player.get("nickname"),
+            "avatar": player.get("avatar", ""),
+            "country": player.get("country", ""),
+            "skillLevel": player.get("games", {}).get("cs2", {}).get("skill_level", 0),
+            "faceitElo": player.get("games", {}).get("cs2", {}).get("faceit_elo", 0),
+        }
+    })
+
+
 async def web_index(request: web.Request) -> web.FileResponse:
     return web.FileResponse(WEB_DIR / "index.html")
 
@@ -2711,6 +2792,7 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_get("/api/bracket", api_bracket)
     web_app.router.add_post("/api/bracket/register", api_bracket_register)
     web_app.router.add_post("/api/bracket/result", api_bracket_result)
+    web_app.router.add_get("/api/faceit/verify", api_faceit_verify)
     web_app.router.add_static("/assets", WEB_DIR / "assets")
     web_app.router.add_static("/", WEB_DIR)
     runner = web.AppRunner(web_app)
@@ -2774,12 +2856,14 @@ async def _notify_captains(bot: Bot, connection: sqlite3.Connection, tournament_
         ).fetchone()
         cap1_tag = f"@{cap1['username']}" if cap1 and cap1["username"] else "\u041a\u0430\u043f\u0438\u0442\u0430\u043d 1"
         cap2_tag = f"@{cap2['username']}" if cap2 and cap2["username"] else "\u041a\u0430\u043f\u0438\u0442\u0430\u043d 2"
+        hub_line = f"\n\ud83c\udfae FACEIT Hub: {FACEIT_HUB_URL}" if FACEIT_HUB_URL else ""
         msg = (
             "\u2694\ufe0f \u041c\u0430\u0442\u0447 \u0442\u0443\u0440\u043d\u0438\u0440\u0430\n\n"
             f"\ud83d\udfe2 {t1['name']} vs {t2['name']}\n\n"
             f"\u041a\u0430\u043f\u0438\u0442\u0430\u043d\u044b: {cap1_tag} \u0438 {cap2_tag}\n"
             "\u0414\u043e\u0433\u043e\u0432\u043e\u0440\u0438\u0442\u0435\u0441\u044c \u043e \u0432\u0440\u0435\u043c\u0435\u043d\u0438 \u043c\u0430\u0442\u0447\u0430 \u0437\u0434\u0435\u0441\u044c.\n"
-            "\u0418\u0433\u0440\u0430\u0439\u0442\u0435 \u0434\u043e \u0432\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u044f 23:59\n\n"
+            "\u0418\u0433\u0440\u0430\u0439\u0442\u0435 \u0434\u043e \u0432\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u044f 23:59"
+            f"{hub_line}\n\n"
             "\u041f\u043e\u0441\u043b\u0435 \u043c\u0430\u0442\u0447\u0430 \u0432\u043d\u0435\u0441\u0438\u0442\u0435 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0432 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438."
         )
         if CAPTAIN_GROUP_ID:
@@ -2835,11 +2919,13 @@ async def generate_weekly_brackets(bot: Bot) -> None:
                 participating = result["participating"]
                 reserve = result["reserve"]
                 reserve_text = f"\u0420\u0435\u0437\u0435\u0440\u0432: {reserve} \u043a\u043e\u043c\u0430\u043d\u0434" if reserve else ""
+                hub_line = f"\n\ud83c\udfae FACEIT Hub: {FACEIT_HUB_URL}" if FACEIT_HUB_URL else ""
                 msg = (
                     f"\ud83c\udfc6 \u0422\u0443\u0440\u043d\u0438\u0440 HardPoint Series \u2014 {fmt}\n\n"
                     "\u0421\u0435\u0442\u043a\u0430 \u0441\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u043d\u0430!\n"
                     f"\u0423\u0447\u0430\u0441\u0442\u043d\u0438\u043a\u043e\u0432: {participating} \u0438\u0437 {size}\n"
-                    f"{reserve_text}\n\n"
+                    f"{reserve_text}"
+                    f"{hub_line}\n\n"
                     "\u041e\u0442\u043a\u0440\u043e\u0439 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0441\u0435\u0442\u043a\u0443 \u2014 \u043a\u043d\u043e\u043f\u043a\u0430 LIVE"
                 )
                 await _notify_group(bot, msg)
