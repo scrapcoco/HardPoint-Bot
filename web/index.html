@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HardPoint</title>
-    <link rel="stylesheet" href="/styles.css?v=40">
+    <link rel="stylesheet" href="/styles.css?v=43">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -24,19 +24,8 @@
         </div>
         <div class="brand-actions">
           <button id="header-coins" class="coin-pill" type="button">🪙 <span id="header-coin-balance">0</span></button>
-          <button id="header-notifications" class="notify-button" type="button" aria-label="Уведомления">🔔<span>2</span></button>
         </div>
       </header>
-
-      <!-- NAV (bottom) -->
-      <div class="menu-wrap">
-        <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false">Меню</button>
-        <div id="menu-panel" class="menu-panel" aria-hidden="true">
-          <button id="home-menu-button" class="is-current" type="button">Главная</button>
-          <button id="league-menu-button" type="button">Series</button>
-          <button id="esport-menu-button" type="button">E-sport</button>
-        </div>
-      </div>
 
       <!-- HOME VIEW -->
       <div id="home-view" class="app-view is-active">
@@ -52,11 +41,9 @@
           <div id="profile-dropdown" class="profile-dropdown" aria-hidden="true">
             <button id="dropdown-profile-button" type="button">◉ Мой профиль</button>
             <button id="profile-missions-button" type="button">🎯 Миссии</button>
-            <button id="shop-menu-button" type="button">🏆 Мои награды</button>
             <button id="profile-clans-button" type="button">⚔️ Кланы <span id="profile-clan-badge">Soon</span></button>
             <button id="dropdown-settings-button" type="button">⚙️ Настройки</button>
           </div>
-          <span class="season-badge">Сезон / Апрель</span>
         </section>
 
         <!-- Rank Hero -->
@@ -74,15 +61,15 @@
           <p class="panel-note" id="rank-next">До следующего ранга: 10</p>
           <p class="panel-note" id="coin-note">За каждого приглашённого друга: 20 монет.</p>
           <div class="rank-stats">
-            <button id="home-invites-stat" type="button">
+            <button type="button">
               <span>📨 Инвайтов</span>
               <strong id="rank-invites">0</strong>
             </button>
-            <button id="home-coins-stat" type="button">
+            <button type="button">
               <span>🪙 Монет</span>
               <strong id="rank-coins">0</strong>
             </button>
-            <button id="home-visits-stat" type="button">
+            <button type="button">
               <span>🚪 Посещений</span>
               <strong id="rank-visits">0</strong>
             </button>
@@ -90,7 +77,7 @@
         </section>
 
         <!-- Rank hint -->
-        <section class="rank-hint-panel" id="rank-hint-panel">
+        <section class="rank-hint-panel">
           <span>💡 Следующий шаг</span>
           <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
         </section>
@@ -112,10 +99,10 @@
             <strong>Клан</strong>
             <small>Уровень и сундуки</small>
           </button>
-          <button id="home-esport-card" class="quick-card quick-esport" type="button">
-            <span>📡</span>
-            <strong>E-sport</strong>
-            <small><i></i> LIVE</small>
+          <button id="home-live-card" class="quick-card quick-esport" type="button">
+            <span>⚡</span>
+            <strong>Live</strong>
+            <small>Турнирная сетка</small>
           </button>
         </section>
 
@@ -157,7 +144,7 @@
             <p class="label">Награды</p>
             <h2>Призы недели</h2>
           </div>
-          <div class="awards-grid" aria-label="Призы за рейтинг недели">
+          <div class="awards-grid">
             <div class="award-card"><strong>1 место</strong><span>8 часов игры</span></div>
             <div class="award-card"><strong>2 место</strong><span>5 часов игры</span></div>
             <div class="award-card"><strong>3 место</strong><span>3 часа игры</span></div>
@@ -180,7 +167,7 @@
             <p class="label">Таблица</p>
             <h2 id="top-title">Топ недели</h2>
           </div>
-          <div class="tabs" role="tablist" aria-label="Рейтинг приглашений">
+          <div class="tabs" role="tablist">
             <button id="weekly-tab" class="tab-button is-active" type="button" aria-selected="true">Неделя</button>
             <button id="all-time-tab" class="tab-button" type="button" aria-selected="false">За всё время</button>
           </div>
@@ -218,27 +205,6 @@
         </section>
       </div>
 
-      <!-- SHOP VIEW -->
-      <div id="shop-view" class="app-view">
-        <section class="shop-panel">
-          <p class="label">Магазин</p>
-          <h2>Скоро здесь появятся награды за монеты.</h2>
-          <div class="shop-grid" aria-label="Будущие товары магазина">
-            <button class="shop-item" type="button" aria-label="Будущий приз 1"><img src="/assets/prize.svg" alt=""></button>
-            <button class="shop-item" type="button" aria-label="Будущий приз 2"><img src="/assets/prize.svg" alt=""></button>
-            <button class="shop-item" type="button" aria-label="Будущий приз 3"><img src="/assets/prize.svg" alt=""></button>
-            <button class="shop-item" type="button" aria-label="Будущий приз 4"><img src="/assets/prize.svg" alt=""></button>
-          </div>
-          <button id="secret-trigger" class="secret-trigger" type="button" aria-label="HardPoint secret">
-            <img src="/assets/hardpoint-logo.png" alt="">
-          </button>
-          <div id="secret-box" class="secret-box" aria-hidden="true">
-            <img src="/assets/hardpoint-logo.png" alt="HardPoint">
-            <div><p class="label">Secret drop</p><strong>HP-20COIN</strong></div>
-          </div>
-        </section>
-      </div>
-
       <!-- LEAGUE / SERIES VIEW -->
       <div id="league-view" class="app-view">
         <section class="league-panel">
@@ -257,7 +223,7 @@
           </article>
 
           <!-- League tabs -->
-          <div class="league-tabs" role="tablist" aria-label="Разделы Series">
+          <div class="league-tabs" role="tablist">
             <button id="league-overview-tab" class="is-current" type="button" data-league-section="overview">Турниры</button>
             <button id="league-register-tab" type="button" data-league-section="register">Заявка</button>
             <button id="league-table-tab" type="button" data-league-section="table">Таблица</button>
@@ -279,7 +245,6 @@
                 <p id="league-next-note" class="panel-note">Сохрани ник, вступи по коду или создай команду.</p>
               </div>
               <button id="league-next-button" type="button">Начать</button>
-              <!-- скрытые кнопки для совместимости с app.js -->
               <div hidden>
                 <button id="league-action-join" type="button">Вступить</button>
                 <button id="league-action-create" type="button">Создать</button>
@@ -287,12 +252,22 @@
               </div>
             </article>
 
+            <!-- FACEIT Hub banner -->
+            <article id="faceit-hub-banner" class="league-card faceit-hub-card" hidden>
+              <div>
+                <p class="label">Платформа</p>
+                <h3>🎮 Матчи через FACEIT</h3>
+                <p class="panel-note">Все матчи турнира проходят в HardPoint Hub на FACEIT с античитом.</p>
+              </div>
+              <a id="faceit-hub-link" href="#" target="_blank" class="faceit-hub-button">Открыть Hub</a>
+            </article>
+
             <div class="series-format-grid">
               <button class="series-format-card series-format-card-5" type="button" data-series-format="5x5">
                 <span class="format-prize">8ч 🎮</span>
                 <small>CS2 · 5×5 · Регистрация открыта</small>
                 <strong>Full Squad<br>Challenge</strong>
-                <em>👥 5 игроков · 📅 Вт 19:00 · BO1</em>
+                <em>👥 5 игроков · BO1</em>
                 <i><b style="width:38%"></b></i>
                 <span class="format-action">🎯 Зарегистрироваться</span>
               </button>
@@ -300,7 +275,7 @@
                 <span class="format-prize">4ч 🎮</span>
                 <small>CS2 · 2×2 · Регистрация открыта</small>
                 <strong>Duo<br>Strike</strong>
-                <em>👥 2 игрока · 📅 Чт 19:00 · BO1</em>
+                <em>👥 2 игрока · BO1</em>
                 <i><b style="width:25%"></b></i>
                 <span class="format-action">🎯 Зарегистрироваться</span>
               </button>
@@ -327,15 +302,17 @@
                 <span id="series-selected-badge">🛡️ 5×5 · Формат выбран</span>
               </div>
             </article>
-            <div class="series-step-pips" aria-label="Шаги регистрации">
+            <div class="series-step-pips">
               <span class="is-active"></span><span></span><span></span>
             </div>
             <article class="league-card">
-              <div class="section-title compact-title"><p class="label">Шаг 1</p><h2>Игровой ник в CS2</h2></div>
-              <p class="panel-note">Это имя будет в таблице турнира и турнирной сетке.</p>
+              <div class="section-title compact-title"><p class="label">Шаг 1</p><h2>Игровые данные</h2></div>
+              <p class="panel-note">Укажи игровой ник CS2 и FACEIT nickname — они будут в турнирной сетке.</p>
               <div class="league-form">
                 <select id="league-register-game" aria-label="Дисциплина"><option value="cs2">CS2</option></select>
-                <input id="league-register-nick" type="text" maxlength="40" placeholder="Игровой ник">
+                <input id="league-register-nick" type="text" maxlength="40" placeholder="Игровой ник CS2">
+                <input id="league-register-faceit" type="text" maxlength="40" placeholder="FACEIT nickname" autocomplete="off">
+                <p id="faceit-verify-status" class="panel-note"></p>
                 <button id="league-register-button" type="button">Сохранить</button>
               </div>
             </article>
@@ -529,7 +506,7 @@
           </div>
           <section class="clan-card">
             <div class="section-title"><p class="label">Рейтинг</p><h2 id="clan-top-title">Топ кланов недели</h2></div>
-            <div class="tabs" role="tablist" aria-label="Рейтинг кланов">
+            <div class="tabs" role="tablist">
               <button id="clan-weekly-tab" class="tab-button is-active" type="button" aria-selected="true">Неделя</button>
               <button id="clan-monthly-tab" class="tab-button" type="button" aria-selected="false">Месяц</button>
             </div>
@@ -544,13 +521,13 @@
           <div class="section-title"><p class="label">E-sport</p><h2>HardPoint teams</h2></div>
           <button id="team-finals-button" class="team-button" type="button" aria-expanded="false">Team The Finals</button>
           <div id="team-finals-panel" class="team-panel" aria-hidden="true">
-            <div class="team-roster" aria-label="Игроки Team The Finals">
+            <div class="team-roster">
               <button id="nama-icon-button" class="player-icon is-filled" type="button" aria-expanded="false" aria-label="Открыть профиль Nama">
                 <img src="/assets/nama-profile.png" alt="">
                 <span>Nama</span>
               </button>
-              <button class="player-icon" type="button" aria-label="Свободный слот игрока"><span class="player-silhouette" aria-hidden="true"></span></button>
-              <button class="player-icon" type="button" aria-label="Свободный слот игрока"><span class="player-silhouette" aria-hidden="true"></span></button>
+              <button class="player-icon" type="button" aria-label="Свободный слот"><span class="player-silhouette"></span></button>
+              <button class="player-icon" type="button" aria-label="Свободный слот"><span class="player-silhouette"></span></button>
             </div>
             <div id="nama-profile-panel" class="player-profile-panel" aria-hidden="true">
               <article class="player-card">
@@ -590,9 +567,29 @@
         </section>
       </div>
 
+      <!-- BOTTOM NAV -->
+      <nav class="bottom-nav">
+        <button id="nav-home" class="nav-btn is-current" type="button">
+          <span>⌂</span>
+          <small>Главная</small>
+        </button>
+        <button id="nav-series" class="nav-btn" type="button">
+          <span>🏆</span>
+          <small>Series</small>
+        </button>
+        <button id="nav-live" class="nav-btn nav-live" type="button">
+          <span>⚡</span>
+          <small>LIVE</small>
+        </button>
+        <button id="nav-esport" class="nav-btn" type="button">
+          <span>🎮</span>
+          <small>E-sport</small>
+        </button>
+      </nav>
+
       <p class="status" id="status"></p>
     </main>
 
-    <script src="/app.js?v=40"></script>
+    <script src="/app.js?v=43"></script>
   </body>
 </html>
