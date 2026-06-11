@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HardPoint</title>
-    <link rel="stylesheet" href="/styles.css?v=44">
+    <link rel="stylesheet" href="/styles.css?v=45">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -156,8 +156,6 @@
             <div><p class="label">Статус</p><h3 id="league-role">Игрок</h3></div>
             <strong id="league-xp">0 XP</strong>
           </article>
-
-          <!-- OVERVIEW -->
           <div id="league-overview-section" class="league-section is-active">
             <article class="league-card league-next-card">
               <div>
@@ -201,8 +199,6 @@
             <article class="league-card"><p class="label">Моя команда</p><div id="league-my-team" class="league-list compact"></div></article>
             <article class="league-card"><p class="label">Открытые серии</p><div id="league-seasons" class="league-pill-list"></div></article>
           </div>
-
-          <!-- REGISTER -->
           <div id="league-register-section" class="league-section">
             <article class="series-wizard-head">
               <button id="series-back-to-formats" type="button">‹</button>
@@ -247,8 +243,6 @@
               <p class="panel-note">Команда попадёт на проверку админу.</p>
             </article>
           </div>
-
-          <!-- TABLE -->
           <div id="league-table-section" class="league-section">
             <article class="league-card">
               <div class="section-title compact-title"><p class="label">Команды</p><h2>Заявки и составы</h2></div>
@@ -261,8 +255,6 @@
               <ol id="league-standings-list" class="top-list"></ol>
             </article>
           </div>
-
-          <!-- ADMIN -->
           <div id="league-admin-section" class="league-section">
             <article id="league-admin-panel" class="league-card" hidden>
               <div class="section-title compact-title"><p class="label">Админ</p><h2>Заявки команд</h2></div>
@@ -273,8 +265,6 @@
               <p class="panel-note">Этот раздел виден только администратору.</p>
             </article>
           </div>
-
-          <!-- Invite sheet -->
           <div id="league-invite-sheet" class="league-invite-sheet" hidden>
             <article class="league-invite-card">
               <button id="league-invite-close" class="sheet-close" type="button" aria-label="Закрыть">×</button>
@@ -411,10 +401,7 @@
       <div id="live-view" class="app-view">
         <section class="live-panel">
           <div class="live-header">
-            <div>
-              <p class="label"><span class="live-dot"></span> Лайв</p>
-              <h2>Турнирная сетка</h2>
-            </div>
+            <div><p class="label"><span class="live-dot"></span> Лайв</p><h2>Турнирная сетка</h2></div>
             <div class="live-format-tabs">
               <button id="live-tab-5x5" class="live-tab is-active" type="button">5×5</button>
               <button id="live-tab-2x2" class="live-tab" type="button">2×2</button>
@@ -485,6 +472,6 @@
       <p class="status" id="status"></p>
     </main>
 
-    <script src="/app.js?v=44"></script>
+    <script src="/app.js?v=45"></script>
   </body>
 </html>
