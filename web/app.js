@@ -13,6 +13,8 @@ const state = {
   selectedLeagueFormat: "5x5",
   liveFmt: "5x5",
   liveRefreshTimer: null,
+  myLeagueTeamIds: [], // team IDs where user is captain
+  myTgId: null,
 };
 
 const inviteLinkNode = document.querySelector("#invite-link");
@@ -230,6 +232,14 @@ function roundLabel(rnd, total) {
   return `Р${rnd}`;
 }
 
+function isCaptainOfMatch(m) {
+  if (!state.myLeagueTeamIds.length) return false;
+  const t1id = m.team1?.id;
+  const t2id = m.team2?.id;
+  return (t1id && state.myLeagueTeamIds.includes(t1id)) ||
+         (t2id && state.myLeagueTeamIds.includes(t2id));
+}
+
 function renderLiveBracket(data) {
   if (!data.bracket) {
     liveContent.innerHTML = `
@@ -282,11 +292,25 @@ function renderLiveMatch(m) {
   const t2cls = w ? (w.id === t2?.id ? "winner" : "loser") : (t2 ? "" : "tbd");
   const s1 = m.score1 !== null && m.score1 !== undefined ? m.score1 : "—";
   const s2 = m.score2 !== null && m.score2 !== undefined ? m.score2 : "—";
+
+  // FACEIT room button — visible only for captain of this match
+  let faceitBtn = "";
+  if (m.status === "pending" && t1 && t2) {
+    if (m.faceitMatchUrl) {
+      // Room exists — show link
+      faceitBtn = `<a href="${escapeHtml(m.faceitMatchUrl)}" target="_blank" class="live-faceit-link">🔗 Открыть комнату FACEIT</a>`;
+    } else if (isCaptainOfMatch(m)) {
+      // Captain — show create button
+      faceitBtn = `<button class="live-faceit-btn" type="button" data-match-id="${m.id}">🎮 Создать комнату FACEIT</button>`;
+    }
+  }
+
   return `<div class="live-match">
     <div class="${barClass}">${barText}</div>
     <div class="live-team ${t1cls}"><span>${escapeHtml(t1?.name || "TBD")}</span><b>${s1}</b></div>
     <div class="live-divider"></div>
     <div class="live-team ${t2cls}"><span>${escapeHtml(t2?.name || "TBD")}</span><b>${s2}</b></div>
+    ${faceitBtn}
   </div>`;
 }
 
@@ -313,6 +337,44 @@ function switchLiveFormat(fmt) {
   liveTab5x5.classList.toggle("is-active", fmt === "5x5");
   liveTab2x2.classList.toggle("is-active", fmt === "2x2");
   loadLiveBracket();
+}
+
+async function createFaceitRoom(matchId, btn) {
+  btn.disabled = true;
+  btn.textContent = "⏳ Создаём...";
+  try {
+    const result = await postApi("/api/bracket/create-faceit-room", { matchId: Number(matchId) });
+    if (result.ok && result.faceitMatchUrl) {
+      // Replace button with link
+      const link = document.createElement("a");
+      link.href = result.faceitMatchUrl;
+      link.target = "_blank";
+      link.className = "live-faceit-link";
+      link.textContent = "🔗 Открыть комнату FACEIT";
+      btn.replaceWith(link);
+      tg?.HapticFeedback?.notificationOccurred("success");
+      setStatus("Комната создана! Ссылка отправлена капитанам.");
+    } else if (result.fallback) {
+      // Fallback — open Hub manually
+      btn.textContent = "🎮 Создать вручную";
+      btn.disabled = false;
+      if (result.faceitHubUrl && tg?.openLink) {
+        tg.openLink(result.faceitHubUrl);
+      }
+      setStatus("Создайте комнату вручную в FACEIT Hub.");
+    } else if (result.already) {
+      const link = document.createElement("a");
+      link.href = result.faceitMatchUrl;
+      link.target = "_blank";
+      link.className = "live-faceit-link";
+      link.textContent = "🔗 Открыть комнату FACEIT";
+      btn.replaceWith(link);
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "🎮 Создать комнату FACEIT";
+    setStatus(errorMessage(err, "Не удалось создать комнату."));
+  }
 }
 
 // ── RENDER ──
@@ -472,6 +534,12 @@ function renderLeague(data) {
   document.body.classList.toggle("has-league-admin", Boolean(user.isAdmin));
   if (user.faceitHubUrl) { faceitHubBanner.hidden = false; faceitHubLink.href = user.faceitHubUrl; }
   else faceitHubBanner.hidden = true;
+
+  // Save captain team IDs for Live sетка
+  state.myLeagueTeamIds = (state.league.myTeams || [])
+    .filter(t => t.status === "active")
+    .map(t => Number(t.id));
+
   renderLeagueNextStep(user, state.league.myTeams || []);
   renderLeagueJoinAccess(user);
   renderLeagueSeasons(state.league.seasons || []);
@@ -657,6 +725,7 @@ async function load() {
     state.inviteLink = me.inviteLink;
     state.weeklyTop = weeklyTop.top;
     state.allTimeTop = allTimeTop.top;
+    state.myTgId = me.user?.id;
     inviteLinkNode.textContent = me.inviteLink;
     weeklyCountNode.textContent = me.weeklyInvitedCount;
     allTimeCountNode.textContent = me.allTimeInvitedCount;
@@ -777,6 +846,13 @@ clanWeeklyTab.addEventListener("click", showClanWeeklyTop);
 clanMonthlyTab.addEventListener("click", showClanMonthlyTop);
 liveTab5x5.addEventListener("click", () => switchLiveFormat("5x5"));
 liveTab2x2.addEventListener("click", () => switchLiveFormat("2x2"));
+
+// FACEIT create room — delegate click on live content
+liveContent.addEventListener("click", e => {
+  const btn = e.target.closest("button.live-faceit-btn");
+  if (!btn) return;
+  createFaceitRoom(btn.dataset.matchId, btn);
+});
 
 leagueTabs.forEach(b => b.addEventListener("click", () => showLeagueSection(b.dataset.leagueSection)));
 leagueNextButton.addEventListener("click", () => showLeagueSection(leagueNextButton.dataset.target || "register"));
