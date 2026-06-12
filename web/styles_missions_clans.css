@@ -1,0 +1,251 @@
+/* ── MISSIONS REDESIGN ── */
+.missions-panel{margin-top:.65rem;padding:0}
+
+.daily-reward-banner{
+  position:relative;overflow:hidden;
+  padding:1.2rem;border-radius:1.35rem;margin-bottom:.65rem;
+  border:1px solid rgba(255,221,61,.3);
+  background:linear-gradient(135deg,rgba(255,221,61,.16),rgba(255,221,61,.05));
+}
+.daily-reward-banner::before{
+  content:"";position:absolute;top:-1.5rem;right:-1.5rem;
+  width:6rem;height:6rem;border-radius:50%;
+  background:rgba(255,221,61,.1);pointer-events:none;
+}
+.daily-badge{
+  display:inline-block;padding:.25rem .65rem;margin-bottom:.55rem;
+  border-radius:999px;background:rgba(255,221,61,.18);
+  color:#ffdd3d;font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+}
+.daily-reward-banner h3{font-size:1.1rem;font-weight:900;margin-bottom:.25rem;color:var(--ink)}
+.daily-reward-banner p{font-size:.76rem;color:var(--muted);margin-bottom:.85rem;line-height:1.4}
+.daily-claim-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.65rem 1.35rem;border-radius:999px;
+  background:#ffdd3d;color:#141414;
+  font:inherit;font-size:.84rem;font-weight:900;border:none;cursor:pointer;
+  transition:all .18s;
+}
+.daily-claim-btn:hover{transform:scale(1.04)}
+.daily-claim-btn:disabled{
+  background:rgba(255,255,255,.08);color:var(--muted);cursor:not-allowed;transform:none;
+}
+.daily-coins-badge{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.3rem .65rem;border-radius:999px;
+  background:rgba(255,221,61,.12);border:1px solid rgba(255,221,61,.2);
+  color:#ffdd3d;font-size:.72rem;font-weight:900;
+  margin-left:.5rem;
+}
+
+.mission-cards-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:.65rem;
+}
+.mission-mini-card{
+  position:relative;overflow:hidden;
+  padding:.85rem;border-radius:1.1rem;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+}
+.mission-mini-card .m-icon{font-size:1.6rem;display:block;margin-bottom:.45rem}
+.mission-mini-card h4{font-size:.82rem;font-weight:900;color:var(--ink);margin-bottom:.2rem}
+.mission-mini-card .m-reward{font-size:.7rem;font-weight:900;color:#ffdd3d;margin-bottom:.6rem}
+.mission-done{
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-size:.68rem;font-weight:900;color:#00e5c0;
+  padding:.3rem .65rem;border-radius:999px;
+  background:rgba(0,229,192,.1);border:1px solid rgba(0,229,192,.2);
+}
+.mission-go-btn{
+  display:block;width:100%;padding:.5rem;
+  border-radius:.65rem;border:1px solid rgba(255,221,61,.25);
+  background:rgba(255,221,61,.1);color:#ffdd3d;
+  font:inherit;font-size:.72rem;font-weight:900;cursor:pointer;
+  transition:all .18s;
+}
+.mission-go-btn:hover{background:rgba(255,221,61,.2)}
+
+.streak-gaming-card{
+  padding:1rem;border-radius:1.25rem;margin-bottom:.65rem;
+  border:1px solid rgba(255,95,109,.25);
+  background:linear-gradient(135deg,rgba(255,95,109,.1),rgba(255,95,109,.04));
+}
+.streak-gaming-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;
+}
+.streak-gaming-header .label{color:var(--red);font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+.streak-gaming-header h3{font-size:.95rem;font-weight:900;margin-top:.1rem}
+.streak-big-number{font-size:2.2rem;font-weight:900;color:var(--red);line-height:1}
+.streak-milestones-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;
+}
+.streak-milestone{
+  text-align:center;padding:.55rem .25rem;
+  border-radius:.75rem;border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+}
+.streak-milestone .sm-days{font-size:.6rem;color:var(--muted);font-weight:700;margin-bottom:.2rem}
+.streak-milestone .sm-bonus{font-size:.72rem;font-weight:900;color:var(--red)}
+.streak-milestone.is-reached{
+  background:rgba(255,95,109,.15);border-color:rgba(255,95,109,.3);
+}
+.streak-milestone.is-reached .sm-days{color:var(--red)}
+
+.social-missions-section{margin-top:.65rem}
+.social-missions-label{
+  font-size:.6rem;font-weight:900;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--muted);margin-bottom:.55rem;
+}
+.social-mission-new{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.85rem;border-radius:1.1rem;margin-bottom:.5rem;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+}
+.social-mission-icon{
+  width:2.6rem;height:2.6rem;border-radius:.75rem;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;
+}
+.social-mission-icon.ig{background:linear-gradient(135deg,rgba(193,53,132,.3),rgba(131,58,180,.2))}
+.social-mission-icon.dc{background:rgba(88,101,242,.2)}
+.social-mission-body{flex:1;min-width:0}
+.social-mission-body h5{font-size:.84rem;font-weight:900;color:var(--ink);margin-bottom:.1rem}
+.social-mission-body p{font-size:.72rem;font-weight:900;color:#ffdd3d}
+.social-mission-action{
+  display:flex;flex-direction:column;gap:.3rem;align-items:flex-end;
+}
+.social-open-btn{
+  padding:.45rem .75rem;border-radius:.65rem;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);color:var(--ink);
+  font:inherit;font-size:.68rem;font-weight:900;cursor:pointer;
+}
+.social-claim-btn{
+  padding:.45rem .75rem;border-radius:.65rem;
+  border:1px solid rgba(255,221,61,.25);
+  background:rgba(255,221,61,.1);color:#ffdd3d;
+  font:inherit;font-size:.68rem;font-weight:900;cursor:pointer;
+}
+.social-claim-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── CLANS REDESIGN ── */
+.clans-panel{margin-top:.65rem;padding:0}
+
+.clan-unlock-banner{
+  padding:1.35rem;border-radius:1.35rem;margin-bottom:.65rem;
+  border:1px solid rgba(167,139,250,.25);
+  background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(167,139,250,.04));
+  text-align:center;
+}
+.clan-unlock-icon{font-size:2.5rem;display:block;margin-bottom:.65rem}
+.clan-unlock-banner h3{font-size:1.1rem;font-weight:900;margin-bottom:.4rem}
+.clan-unlock-banner p{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:1rem}
+.clan-unlock-progress{
+  height:.5rem;border-radius:999px;
+  background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:.45rem;
+}
+.clan-unlock-progress-fill{
+  height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,#a78bfa,#7c3aed);
+  transition:width .6s ease;
+}
+.clan-progress-labels{
+  display:flex;justify-content:space-between;
+  font-size:.65rem;color:var(--muted);font-weight:700;margin-bottom:.85rem;
+}
+.clan-invite-cta{
+  display:block;width:100%;padding:.85rem;
+  border-radius:1rem;border:none;
+  background:#a78bfa;color:#fff;
+  font:inherit;font-size:.9rem;font-weight:900;cursor:pointer;
+  transition:all .18s;
+}
+.clan-invite-cta:hover{transform:scale(1.02)}
+
+.clan-features-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.65rem;
+}
+.clan-feature-card{
+  padding:.85rem;border-radius:1.1rem;text-align:center;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.04);
+}
+.clan-feature-card .cf-icon{font-size:1.5rem;display:block;margin-bottom:.45rem}
+.clan-feature-card h5{font-size:.78rem;font-weight:900;color:var(--ink);margin-bottom:.2rem}
+.clan-feature-card p{font-size:.68rem;color:var(--muted);line-height:1.35}
+
+.clan-top-widget{
+  border-radius:1.25rem;overflow:hidden;
+  border:1px solid rgba(255,221,61,.2);
+  background:rgba(255,221,61,.04);
+}
+.clan-top-widget-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.clan-top-widget-header h4{font-size:.82rem;font-weight:900;color:#ffdd3d}
+.clan-top-widget-header span{font-size:.68rem;color:var(--muted)}
+.clan-top-row{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.65rem 1rem;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.clan-top-row:last-child{border-bottom:none}
+.clan-top-place{width:1.4rem;font-size:.82rem;font-weight:900;text-align:center}
+.clan-top-place.gold{color:#ffdd3d}
+.clan-top-place.silver{color:#c0c0c0}
+.clan-top-place.bronze{color:#cd7f32}
+.clan-top-avatar{
+  width:2.2rem;height:2.2rem;border-radius:.65rem;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:900;flex-shrink:0;
+  background:rgba(167,139,250,.2);color:#a78bfa;
+}
+.clan-top-info{flex:1;min-width:0}
+.clan-top-info h5{
+  font-size:.82rem;font-weight:900;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.clan-top-info p{font-size:.65rem;color:var(--muted)}
+.clan-top-xp{font-size:.82rem;font-weight:900;color:#ffdd3d}
+
+/* ── HOME MISSIONS CARD REDESIGN ── */
+.quick-missions-big{
+  position:relative;overflow:hidden;
+  grid-column:1 / -1;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:.75rem;padding:.85rem 1rem;
+  border:1px solid rgba(255,221,61,.3);border-radius:1.25rem;
+  background:linear-gradient(135deg,rgba(255,221,61,.14),rgba(255,221,61,.05));
+  cursor:pointer;text-align:left;
+  transition:all .18s;
+}
+.quick-missions-big:hover{transform:translateY(-2px)}
+.quick-missions-big:active{transform:scale(.97)}
+.quick-missions-big .qmb-left{flex:1;min-width:0}
+.quick-missions-big .qmb-label{
+  font-size:.58rem;font-weight:900;text-transform:uppercase;
+  letter-spacing:.5px;color:rgba(255,221,61,.7);margin-bottom:.2rem;
+}
+.quick-missions-big .qmb-title{font-size:.95rem;font-weight:900;color:var(--ink);margin-bottom:.3rem}
+.quick-missions-big .qmb-progress{
+  height:.35rem;border-radius:999px;
+  background:rgba(255,255,255,.12);overflow:hidden;width:100%;max-width:10rem;
+}
+.quick-missions-big .qmb-progress-fill{
+  height:100%;border-radius:inherit;
+  background:#ffdd3d;width:66%;
+}
+.quick-missions-big .qmb-reward{
+  font-size:.68rem;font-weight:900;color:#ffdd3d;margin-top:.3rem;
+}
+.quick-missions-big .qmb-icon{font-size:2.2rem;flex-shrink:0}
+
+/* Clan badge in dropdown */
+.clan-dropdown-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:1.4rem;height:1.4rem;padding:0 .4rem;
+  border-radius:999px;background:#a78bfa;
+  color:#fff;font-size:.6rem;font-weight:900;
+  margin-left:.35rem;
+}
