@@ -4,18 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HardPoint</title>
-    <link rel="stylesheet" href="/styles.css?v=46">
-    <link rel="stylesheet" href="/styles_faceit.css?v=46">
-    <link rel="stylesheet" href="/styles_missions_clans.css?v=46">
-    <link rel="stylesheet" href="/styles_dropdown_fix.css?v=46">
+    <link rel="stylesheet" href="/styles.css?v=47">
+    <link rel="stylesheet" href="/styles_faceit.css?v=47">
+    <link rel="stylesheet" href="/styles_missions_clans.css?v=47">
+    <link rel="stylesheet" href="/styles_dropdown_fix.css?v=47">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
     <canvas id="arena" aria-hidden="true"></canvas>
 
-    <!-- Дропдаун вынесен на уровень body -->
+    <!-- Дропдаун -->
     <div id="profile-dropdown" class="profile-dropdown" aria-hidden="true">
       <button id="dropdown-profile-button" type="button">◉ Мой профиль</button>
+      <button id="profile-invites-button" type="button">📨 Инвайты</button>
       <button id="profile-missions-button" type="button">🎯 Миссии</button>
       <button id="profile-clans-button" type="button">⚔️ Кланы <span id="profile-clan-badge" class="clan-dropdown-badge">→</span></button>
       <button id="dropdown-settings-button" type="button">⚙️ Настройки</button>
@@ -48,6 +49,67 @@
           </div>
           <button id="profile-menu-button" class="profile-pill" type="button" aria-expanded="false">◉ Профиль ▾</button>
         </section>
+
+        <!-- Карточки быстрого доступа -->
+        <section class="quick-panel">
+          <button id="home-missions-card" class="quick-missions-big" type="button">
+            <div class="qmb-left">
+              <p class="qmb-label">🎯 Миссии</p>
+              <p class="qmb-title">Забери монеты сегодня</p>
+              <div class="qmb-progress"><div class="qmb-progress-fill" id="home-missions-progress"></div></div>
+              <p class="qmb-reward" id="home-missions-reward">Daily Reward ждёт</p>
+            </div>
+            <div class="qmb-icon">🪙</div>
+          </button>
+          <button id="home-series-card" class="quick-card quick-series" type="button"><span>🏆</span><strong>Series CS2</strong><small>Следующий турнир</small></button>
+          <button id="home-live-card" class="quick-card quick-esport" type="button"><span>⚡</span><strong>Live</strong><small>Турнирная сетка</small></button>
+        </section>
+
+        <!-- Twitch плеер -->
+        <section class="twitch-player-section">
+          <div class="twitch-player-header">
+            <div class="twitch-player-label">
+              <span class="live-dot"></span>
+              <span>CS2 Maincast</span>
+            </div>
+            <a href="https://www.twitch.tv/cs2_maincast" target="_blank" class="twitch-open-btn">Открыть ↗</a>
+          </div>
+          <div class="twitch-player-wrap">
+            <iframe
+              src="https://player.twitch.tv/?channel=cs2_maincast&parent=bot.hardpointcyber.club&muted=false"
+              allowfullscreen
+              allow="autoplay; fullscreen"
+              class="twitch-iframe"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </section>
+      </div>
+
+      <!-- PROFILE VIEW -->
+      <div id="profile-view" class="app-view">
+        <section class="profile-summary-panel">
+          <div class="profile-summary-head"><div><p class="label">Личный центр</p><h2>Профиль HardPoint</h2></div><img src="/assets/hardpoint-logo.png" alt="HardPoint"></div>
+        </section>
+        <section class="profile-panel">
+          <div class="section-title"><p class="label">Профиль</p><h2>Логин в клубе</h2></div>
+          <div class="login-form">
+            <input id="club-login" type="text" maxlength="40" autocomplete="off" placeholder="Введите логин" aria-label="Логин в клубе">
+            <button id="save-login-button" type="button">Сохранить</button>
+          </div>
+          <p class="panel-note">Этот логин нужен только для начисления наград.</p>
+        </section>
+        <section class="profile-empty-panel">
+          <p class="label">Ранги</p>
+          <div class="rank-list">
+            <span>🥉 Recruit — 0</span><span>🥈 Rookie — 10</span><span>🥇 Grinder — 20</span>
+            <span>💠 Veteran — 30</span><span>🔥 Elite — 40</span><span>👑 Legend — 50</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- INVITES VIEW -->
+      <div id="invites-view" class="app-view">
         <section class="rank-panel home-rank-panel">
           <div class="rank-head">
             <div class="rank-info"><p class="label">Текущий ранг</p><h2 id="rank-title">🥉 Recruit</h2></div>
@@ -66,21 +128,6 @@
           <span>💡 Следующий шаг</span>
           <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
         </section>
-
-        <section class="quick-panel">
-          <button id="home-missions-card" class="quick-missions-big" type="button">
-            <div class="qmb-left">
-              <p class="qmb-label">🎯 Миссии</p>
-              <p class="qmb-title">Забери монеты сегодня</p>
-              <div class="qmb-progress"><div class="qmb-progress-fill" id="home-missions-progress"></div></div>
-              <p class="qmb-reward" id="home-missions-reward">Daily Reward ждёт</p>
-            </div>
-            <div class="qmb-icon">🪙</div>
-          </button>
-          <button id="home-series-card" class="quick-card quick-series" type="button"><span>🏆</span><strong>Series CS2</strong><small>Следующий турнир</small></button>
-          <button id="home-live-card" class="quick-card quick-esport" type="button"><span>⚡</span><strong>Live</strong><small>Турнирная сетка</small></button>
-        </section>
-
         <section class="profile-streak home-streak" aria-label="Серия входов">
           <div class="profile-streak-head"><span>🔥 Серия входов</span><strong><span id="profile-streak-days">0</span>/30</strong></div>
           <div class="streak-track">
@@ -91,12 +138,6 @@
             <span class="streak-marker" data-day="30" style="left:100%"><i>🔥</i><b>30</b></span>
           </div>
           <div class="streak-rewards" aria-hidden="true"><span>+50</span><span>+150</span><span>+300</span><span>+500</span></div>
-        </section>
-        <section class="hero-panel">
-          <p class="label">Личный invite-пульт</p>
-          <h2>Зови друзей в клуб и смотри, сколько людей пришло по твоей ссылке.</h2>
-          <div class="score-line"><span>За неделю</span><strong id="weekly-count">...</strong></div>
-          <div class="total-line"><span>За всё время</span><strong id="all-time-count">...</strong></div>
         </section>
         <section class="awards-panel">
           <div class="section-title"><p class="label">Награды</p><h2>Призы недели</h2></div>
@@ -121,28 +162,6 @@
             <button id="all-time-tab" class="tab-button" type="button" aria-selected="false">За всё время</button>
           </div>
           <ol id="top-list" class="top-list"><li>Загрузка...</li></ol>
-        </section>
-      </div>
-
-      <!-- PROFILE VIEW -->
-      <div id="profile-view" class="app-view">
-        <section class="profile-summary-panel">
-          <div class="profile-summary-head"><div><p class="label">Личный центр</p><h2>Профиль HardPoint</h2></div><img src="/assets/hardpoint-logo.png" alt="HardPoint"></div>
-        </section>
-        <section class="profile-panel">
-          <div class="section-title"><p class="label">Профиль</p><h2>Логин в клубе</h2></div>
-          <div class="login-form">
-            <input id="club-login" type="text" maxlength="40" autocomplete="off" placeholder="Введите логин" aria-label="Логин в клубе">
-            <button id="save-login-button" type="button">Сохранить</button>
-          </div>
-          <p class="panel-note">Этот логин нужен только для начисления наград.</p>
-        </section>
-        <section class="profile-empty-panel">
-          <p class="label">Ранги</p>
-          <div class="rank-list">
-            <span>🥉 Recruit — 0</span><span>🥈 Rookie — 10</span><span>🥇 Grinder — 20</span>
-            <span>💠 Veteran — 30</span><span>🔥 Elite — 40</span><span>👑 Legend — 50</span>
-          </div>
         </section>
       </div>
 
@@ -315,7 +334,7 @@
               <span class="m-icon">👥</span>
               <h4>Пригласи друга</h4>
               <p class="m-reward">+20 HP Coins</p>
-              <button type="button" class="mission-go-btn" onclick="showView(homeView)">Пригласить →</button>
+              <button type="button" class="mission-go-btn" onclick="showView(invitesView)">Пригласить →</button>
             </div>
           </div>
           <div class="streak-gaming-card">
@@ -371,7 +390,7 @@
               <span id="clan-gate-count">0 / 10 приглашений</span>
               <span>Rookie открывает кланы</span>
             </div>
-            <button class="clan-invite-cta" onclick="showView(homeView)">📨 Пригласить друзей</button>
+            <button class="clan-invite-cta" onclick="showView(invitesView)">📨 Пригласить друзей</button>
           </div>
           <div class="clan-features-grid">
             <div class="clan-feature-card"><span class="cf-icon">🏆</span><h5>Сундуки недели</h5><p>Зарабатывайте XP вместе и открывайте награды</p></div>
@@ -526,6 +545,6 @@
       <p class="status" id="status"></p>
     </main>
 
-    <script src="/app.js?v=46"></script>
+    <script src="/app.js?v=47"></script>
   </body>
 </html>
