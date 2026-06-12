@@ -7,10 +7,19 @@
     <link rel="stylesheet" href="/styles.css?v=46">
     <link rel="stylesheet" href="/styles_faceit.css?v=46">
     <link rel="stylesheet" href="/styles_missions_clans.css?v=46">
+    <link rel="stylesheet" href="/styles_dropdown_fix.css?v=46">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
     <canvas id="arena" aria-hidden="true"></canvas>
+
+    <!-- Дропдаун вынесен на уровень body -->
+    <div id="profile-dropdown" class="profile-dropdown" aria-hidden="true">
+      <button id="dropdown-profile-button" type="button">◉ Мой профиль</button>
+      <button id="profile-missions-button" type="button">🎯 Миссии</button>
+      <button id="profile-clans-button" type="button">⚔️ Кланы <span id="profile-clan-badge" class="clan-dropdown-badge">→</span></button>
+      <button id="dropdown-settings-button" type="button">⚙️ Настройки</button>
+    </div>
 
     <main class="app-shell">
 
@@ -38,12 +47,6 @@
             <strong id="home-username">@hardpoint</strong>
           </div>
           <button id="profile-menu-button" class="profile-pill" type="button" aria-expanded="false">◉ Профиль ▾</button>
-          <div id="profile-dropdown" class="profile-dropdown" aria-hidden="true">
-            <button id="dropdown-profile-button" type="button">◉ Мой профиль</button>
-            <button id="profile-missions-button" type="button">🎯 Миссии</button>
-            <button id="profile-clans-button" type="button">⚔️ Кланы <span id="profile-clan-badge" class="clan-dropdown-badge">→</span></button>
-            <button id="dropdown-settings-button" type="button">⚙️ Настройки</button>
-          </div>
         </section>
         <section class="rank-panel home-rank-panel">
           <div class="rank-head">
@@ -64,7 +67,6 @@
           <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
         </section>
 
-        <!-- Большая карточка миссий -->
         <section class="quick-panel">
           <button id="home-missions-card" class="quick-missions-big" type="button">
             <div class="qmb-left">
@@ -291,22 +293,16 @@
         </section>
       </div>
 
-      <!-- MISSIONS VIEW — новый дизайн -->
+      <!-- MISSIONS VIEW -->
       <div id="missions-view" class="app-view">
         <section class="missions-panel">
-
-          <!-- Daily reward баннер -->
           <div class="daily-reward-banner">
             <span class="daily-badge">🔥 Daily</span>
             <h3>Ежедневная награда</h3>
             <p>Заходи каждый день и получай монеты. Серия входов даёт бонусы.</p>
-            <button id="daily-reward-button" type="button" class="daily-claim-btn">
-              🪙 Забрать награду
-            </button>
+            <button id="daily-reward-button" type="button" class="daily-claim-btn">🪙 Забрать награду</button>
             <p id="daily-reward-status" class="panel-note" style="margin-top:.5rem;padding:0"></p>
           </div>
-
-          <!-- Карточки миссий -->
           <div class="mission-cards-grid">
             <div class="mission-mini-card">
               <span class="m-icon">📲</span>
@@ -319,11 +315,9 @@
               <span class="m-icon">👥</span>
               <h4>Пригласи друга</h4>
               <p class="m-reward">+20 HP Coins</p>
-              <button id="invite-friend-btn" type="button" class="mission-go-btn" onclick="document.querySelector('#nav-home').click()">Пригласить →</button>
+              <button type="button" class="mission-go-btn" onclick="showView(homeView)">Пригласить →</button>
             </div>
           </div>
-
-          <!-- Серия входов -->
           <div class="streak-gaming-card">
             <div class="streak-gaming-header">
               <div>
@@ -333,34 +327,17 @@
               <div class="streak-big-number" id="mission-streak-big">0</div>
             </div>
             <div class="streak-milestones-grid">
-              <div class="streak-milestone" data-streak="3">
-                <div class="sm-days">3 дня</div>
-                <div class="sm-bonus">+50</div>
-              </div>
-              <div class="streak-milestone" data-streak="7">
-                <div class="sm-days">7 дней</div>
-                <div class="sm-bonus">+150</div>
-              </div>
-              <div class="streak-milestone" data-streak="14">
-                <div class="sm-days">14 дн.</div>
-                <div class="sm-bonus">+300</div>
-              </div>
-              <div class="streak-milestone" data-streak="30">
-                <div class="sm-days">30 дн.</div>
-                <div class="sm-bonus">+500</div>
-              </div>
+              <div class="streak-milestone" data-streak="3"><div class="sm-days">3 дня</div><div class="sm-bonus">+50</div></div>
+              <div class="streak-milestone" data-streak="7"><div class="sm-days">7 дней</div><div class="sm-bonus">+150</div></div>
+              <div class="streak-milestone" data-streak="14"><div class="sm-days">14 дн.</div><div class="sm-bonus">+300</div></div>
+              <div class="streak-milestone" data-streak="30"><div class="sm-days">30 дн.</div><div class="sm-bonus">+500</div></div>
             </div>
           </div>
-
-          <!-- Социальные миссии -->
           <div class="social-missions-section">
             <p class="social-missions-label">Социальные миссии</p>
             <div class="social-mission-new">
               <div class="social-mission-icon ig">📸</div>
-              <div class="social-mission-body">
-                <h5>Instagram HardPoint</h5>
-                <p>+500 HP Coins</p>
-              </div>
+              <div class="social-mission-body"><h5>Instagram HardPoint</h5><p>+500 HP Coins</p></div>
               <div class="social-mission-action">
                 <a href="https://www.instagram.com/hardpoint_szczecin" target="_blank" rel="noreferrer" class="social-open-btn">Открыть</a>
                 <button id="instagram-reward-button" type="button" class="social-claim-btn">Отправить</button>
@@ -369,10 +346,7 @@
             <p id="instagram-reward-status" class="panel-note" style="padding:0;margin-bottom:.5rem"></p>
             <div class="social-mission-new">
               <div class="social-mission-icon dc">💬</div>
-              <div class="social-mission-body">
-                <h5>Discord сервер</h5>
-                <p>+500 HP Coins</p>
-              </div>
+              <div class="social-mission-body"><h5>Discord сервер</h5><p>+500 HP Coins</p></div>
               <div class="social-mission-action">
                 <a href="https://discord.gg/8zJUFdjA" target="_blank" rel="noreferrer" class="social-open-btn">Открыть</a>
                 <button id="discord-reward-button" type="button" class="social-claim-btn">Отправить</button>
@@ -380,15 +354,12 @@
             </div>
             <p id="discord-reward-status" class="panel-note" style="padding:0"></p>
           </div>
-
         </section>
       </div>
 
-      <!-- CLANS VIEW — новый дизайн -->
+      <!-- CLANS VIEW -->
       <div id="clans-view" class="app-view">
         <section class="clans-panel">
-
-          <!-- Замок / прогресс до разблокировки -->
           <div id="clan-gate" class="clan-unlock-banner">
             <span class="clan-unlock-icon">⚔️</span>
             <h3>Кланы HardPoint</h3>
@@ -402,32 +373,12 @@
             </div>
             <button class="clan-invite-cta" onclick="showView(homeView)">📨 Пригласить друзей</button>
           </div>
-
-          <!-- Что дают кланы -->
           <div class="clan-features-grid">
-            <div class="clan-feature-card">
-              <span class="cf-icon">🏆</span>
-              <h5>Сундуки недели</h5>
-              <p>Зарабатывайте XP вместе и открывайте награды</p>
-            </div>
-            <div class="clan-feature-card">
-              <span class="cf-icon">⚡</span>
-              <h5>Daily Check-in</h5>
-              <p>+10 XP клану за каждый вход</p>
-            </div>
-            <div class="clan-feature-card">
-              <span class="cf-icon">📊</span>
-              <h5>Рейтинг кланов</h5>
-              <p>Соревнуйтесь с другими кланами клуба</p>
-            </div>
-            <div class="clan-feature-card">
-              <span class="cf-icon">🎁</span>
-              <h5>Награды</h5>
-              <p>Common, Rare и Epic сундуки</p>
-            </div>
+            <div class="clan-feature-card"><span class="cf-icon">🏆</span><h5>Сундуки недели</h5><p>Зарабатывайте XP вместе и открывайте награды</p></div>
+            <div class="clan-feature-card"><span class="cf-icon">⚡</span><h5>Daily Check-in</h5><p>+10 XP клану за каждый вход</p></div>
+            <div class="clan-feature-card"><span class="cf-icon">📊</span><h5>Рейтинг кланов</h5><p>Соревнуйтесь с другими кланами клуба</p></div>
+            <div class="clan-feature-card"><span class="cf-icon">🎁</span><h5>Награды</h5><p>Common, Rare и Epic сундуки</p></div>
           </div>
-
-          <!-- Текущий клан (скрыт пока нет клана) -->
           <div id="clan-current" class="clan-current" hidden>
             <article class="clan-card">
               <div class="clan-card-head"><div><p class="label">Мой клан</p><h3 id="clan-name">HardPoint</h3></div><strong id="clan-level">LVL 1</strong></div>
@@ -466,8 +417,6 @@
             <article class="clan-card"><div class="clan-card-head"><div><p class="label">Код клана</p><h3 id="clan-code">HP-0000</h3></div><button id="copy-clan-code-button" type="button">Копировать</button></div></article>
             <article class="clan-card"><p class="label">Участники</p><ol id="clan-members-list" class="clan-list"></ol></article>
           </div>
-
-          <!-- Вступить / создать (скрыт пока в клане) -->
           <div id="clan-join" class="clan-join">
             <article class="clan-card">
               <p class="label">Создание</p>
@@ -487,16 +436,10 @@
             </article>
             <article class="clan-card"><p class="label">Доступные кланы</p><div id="public-clans-list" class="public-clans-list"></div></article>
           </div>
-
-          <!-- Топ кланов -->
           <div class="clan-top-widget">
-            <div class="clan-top-widget-header">
-              <h4>🏆 Топ кланов недели</h4>
-              <span>XP</span>
-            </div>
+            <div class="clan-top-widget-header"><h4>🏆 Топ кланов недели</h4><span>XP</span></div>
             <div id="clan-top-list-widget"></div>
           </div>
-
           <section class="clan-card" style="margin-top:.65rem">
             <div class="section-title"><p class="label">Рейтинг</p><h2 id="clan-top-title">Топ кланов</h2></div>
             <div class="tabs" role="tablist">
@@ -505,7 +448,6 @@
             </div>
             <ol id="clan-top-list" class="top-list"></ol>
           </section>
-
         </section>
       </div>
 
