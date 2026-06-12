@@ -1,0 +1,8 @@
+.profile-dropdown{
+  position:fixed;top:auto;right:.75rem;z-index:30;
+  display:none;min-width:13.6rem;padding:.4rem;
+  border:1px solid var(--line);border-radius:1rem;
+  background:rgba(18,18,24,.98);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);backdrop-filter:blur(28px);
+}
+.profile-dropdown.is-open{display:grid;gap:.25rem;animation:slideDown .2s cubic-bezier(.16,1,.3,1) both}
