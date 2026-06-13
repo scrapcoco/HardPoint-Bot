@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HardPoint</title>
-    <link rel="stylesheet" href="/styles.css?v=47">
-    <link rel="stylesheet" href="/styles_faceit.css?v=47">
-    <link rel="stylesheet" href="/styles_missions_clans.css?v=47">
-    <link rel="stylesheet" href="/styles_dropdown_fix.css?v=47">
-    <link rel="stylesheet" href="/styles_twitch.css?v=47">
+    <link rel="stylesheet" href="/styles.css?v=48">
+    <link rel="stylesheet" href="/styles_faceit.css?v=48">
+    <link rel="stylesheet" href="/styles_missions_clans.css?v=48">
+    <link rel="stylesheet" href="/styles_dropdown_fix.css?v=48">
+    <link rel="stylesheet" href="/styles_twitch.css?v=48">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -214,7 +214,34 @@
             <div class="series-step-pips"><span class="is-active"></span><span></span><span></span></div>
             <article class="league-card"><div class="section-title compact-title"><p class="label">Шаг 1</p><h2>FACEIT аккаунт</h2></div><p class="panel-note">Укажи свой FACEIT nickname.</p><div class="league-form"><input id="league-register-faceit" type="text" maxlength="40" placeholder="FACEIT nickname" autocomplete="off" spellcheck="false"><p id="faceit-verify-status" class="panel-note"></p><button id="league-register-button" type="button">Сохранить</button></div></article>
             <article id="league-join-card" class="league-card"><div class="section-title compact-title"><p class="label">Шаг 2</p><h2>Способ участия</h2></div><p class="panel-note">Есть код капитана — введи его.</p><div id="league-join-form" class="league-form"><input id="league-join-code" type="text" maxlength="9" placeholder="HL-XXXXXX" autocomplete="off"><button id="league-join-button" type="button">🔗 Вступить по коду</button></div><p id="league-join-note" class="panel-note">Сначала укажи FACEIT nickname.</p></article>
-            <article class="league-card"><div class="section-title compact-title"><p class="label">Капитан</p><h2>Создать команду</h2></div><div class="league-form"><div id="league-team-format-wrap" class="league-format-wrap"><select id="league-team-format" aria-label="Формат CS2"><option value="">Выбери формат</option><option value="5x5">5×5</option><option value="2x2">2×2</option></select></div><input id="league-team-name" type="text" maxlength="40" placeholder="Название команды"><button id="league-create-team-button" type="button">✅ Подать заявку</button></div><p class="panel-note">Команда попадёт на проверку админу.</p></article>
+
+            <!-- Создать команду — с уведомлением о /start -->
+            <article class="league-card">
+              <div class="section-title compact-title"><p class="label">Капитан</p><h2>Создать команду</h2></div>
+
+              <!-- ⚠️ Уведомление о приватности -->
+              <div class="start-warning-banner">
+                <div class="start-warning-icon">⚠️</div>
+                <div class="start-warning-body">
+                  <p class="start-warning-title">Важно для капитанов</p>
+                  <p class="start-warning-text">Чтобы получать уведомления о матчах — напиши <strong>/start</strong> боту в Telegram. Иначе бот не сможет написать тебе в личку.</p>
+                  <a id="start-bot-link" href="https://t.me/hardpointszczecin_bot?start=captain" target="_blank" class="start-warning-btn">Написать /start боту →</a>
+                </div>
+              </div>
+
+              <div class="league-form">
+                <div id="league-team-format-wrap" class="league-format-wrap">
+                  <select id="league-team-format" aria-label="Формат CS2">
+                    <option value="">Выбери формат</option>
+                    <option value="5x5">5×5</option>
+                    <option value="2x2">2×2</option>
+                  </select>
+                </div>
+                <input id="league-team-name" type="text" maxlength="40" placeholder="Название команды">
+                <button id="league-create-team-button" type="button">✅ Подать заявку</button>
+              </div>
+              <p class="panel-note">Команда попадёт на проверку админу.</p>
+            </article>
           </div>
           <div id="league-table-section" class="league-section">
             <article class="league-card"><div class="section-title compact-title"><p class="label">Команды</p><h2>Заявки и составы</h2></div><div id="league-teams-list" class="league-list"></div></article>
@@ -320,6 +347,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=47"></script>
+    <script src="/app.js?v=48"></script>
   </body>
 </html>
