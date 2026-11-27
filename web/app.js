@@ -875,6 +875,7 @@ homeMissionsCard?.addEventListener("click", () => showView(missionsView));
 document.querySelector("#header-coins")?.addEventListener("click", () => showView(missionsView));
 homeSeriesCard?.addEventListener("click", () => showView(leagueView));
 homeLiveCard?.addEventListener("click", () => showView(liveView));
+document.querySelector("#home-invite-card")?.addEventListener("click", () => showView(invitesView));
 weeklyTab?.addEventListener("click", showWeeklyTop);
 allTimeTab?.addEventListener("click", showAllTimeTop);
 clanWeeklyTab?.addEventListener("click", showClanWeeklyTop);
