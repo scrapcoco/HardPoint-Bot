@@ -478,6 +478,12 @@ def previous_weekly_reset(now: Optional[datetime] = None) -> datetime:
     return candidate.astimezone(timezone.utc)
 
 
+def closed_registration_week(now: Optional[datetime] = None) -> str:
+    """Week key of the registration that closed last Sunday 23:59.
+    Looks 12 hours back so a Monday 04:00 run (even if late) still lands in the closed week."""
+    return utc_iso(previous_weekly_reset((now or datetime.now(timezone.utc)) - timedelta(hours=12)))
+
+
 def next_bracket_generation(now: Optional[datetime] = None) -> datetime:
     """Next Monday 04:00 Warsaw time"""
     local_now = (now or datetime.now(timezone.utc)).astimezone(SNAPSHOT_TZ)
@@ -707,6 +713,25 @@ def league_user_team(connection: sqlite3.Connection, league_user_id: int, season
     ).fetchone()
 
 
+def team_week_entry(connection: sqlite3.Connection, team_id: int) -> str:
+    """Team's place in the weekly tournament: '' (not entered), 'registered' (this week's sign-up),
+    'active' (playing in a running bracket) or 'reserve'."""
+    query = """
+        SELECT r.status, t.status AS tournament_status FROM tournament_registrations r
+        JOIN tournaments t ON t.id = r.tournament_id
+        WHERE r.team_id = ? AND t.week_start = ?
+        ORDER BY r.registered_at DESC LIMIT 1
+    """
+    row = connection.execute(query, (team_id, weekly_period_start())).fetchone()
+    if row:
+        return str(row["status"])
+    # Bracket made on Monday belongs to last week's sign-up; show it while it is being played.
+    row = connection.execute(query, (team_id, closed_registration_week())).fetchone()
+    if row and str(row["tournament_status"]) == "active" and str(row["status"]) == "active":
+        return "active"
+    return ""
+
+
 def serialize_league_team(connection: sqlite3.Connection, row: sqlite3.Row) -> Dict[str, object]:
     captain = connection.execute("SELECT * FROM league_users WHERE id = ?", (int(row["captain_id"]),)).fetchone()
     members = connection.execute(
@@ -731,6 +756,7 @@ def serialize_league_team(connection: sqlite3.Connection, row: sqlite3.Row) -> D
         "seasonId": int(row["season_id"]),
         "status": row["status"],
         "inviteToken": row["invite_token"],
+        "weekEntry": team_week_entry(connection, int(row["id"])),
         "maxMembers": league_team_limit(row),
         "members": [
             {
@@ -2170,7 +2196,8 @@ async def generate_weekly_brackets(bot: Bot) -> None:
             ).fetchone()
             if not season:
                 continue
-            week_start = weekly_period_start()
+            # Runs Monday 04:00, after the Sunday 23:59 week switch: the bracket is for the week that just closed.
+            week_start = closed_registration_week()
             tournament = connection.execute(
                 "SELECT * FROM tournaments WHERE season_id = ? AND format = ? AND week_start = ? AND status = 'registration'",
                 (int(season["id"]), fmt, week_start),

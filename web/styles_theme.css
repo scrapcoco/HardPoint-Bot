@@ -251,3 +251,17 @@ div.home-row{cursor:default}
 .admin-row{flex-wrap:wrap}
 .admin-actions{display:flex;gap:.4rem;width:100%}
 #league-admin-panel[hidden],#league-admin-empty[hidden]{display:none}
+/* Series overview: one top card, then my team, formats, how it works */
+.series-season-hero{display:none!important}
+.series-top-card{margin-top:.2rem;overflow:hidden;border:1px solid var(--line);border-left:4px solid var(--pink);border-radius:1rem;background:var(--panel)}
+.series-top-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;padding:.85rem .9rem .75rem}
+.series-top-head h2{margin:.15rem 0 0;font-size:1.2rem}
+.series-top-chip{display:inline-flex;align-items:center;gap:.35rem;flex:0 0 auto;padding:.3rem .6rem;border-radius:999px;background:rgba(62,230,224,.12);color:var(--cyan);font-size:.7rem;font-weight:800;white-space:nowrap}
+.series-top-chip .live-dot{margin:0}
+.series-top-step{display:grid;gap:.35rem;padding:.85rem .9rem .9rem;border-top:1px solid var(--line);background:var(--panel-strong)}
+.series-top-step-label{margin:0;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.series-top-step h3{margin:0;font-family:Oswald,Montserrat,sans-serif;font-size:1.15rem}
+#league-next-note{margin:0;color:var(--soft);font-size:.84rem;font-weight:600;line-height:1.4}
+#league-next-button{margin-top:.35rem;min-height:2.8rem;border:0;border-radius:.85rem;background:var(--cream)!important;color:var(--ink-dark)!important;font:inherit;font-size:.9rem;font-weight:800;cursor:pointer}
+#league-next-button[hidden],#league-my-team-block[hidden]{display:none}
+.how-num{display:grid;place-items:center;flex:0 0 auto;width:2rem;height:2rem;border-radius:50%;border:1.5px solid var(--pink);color:var(--pink);font-weight:900;font-size:.85rem}

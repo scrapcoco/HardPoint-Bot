@@ -389,13 +389,48 @@ function renderLeague(data) {
   renderLeaguePending(state.league.pendingTeams || [], Boolean(user.isAdmin));
   selectSeriesFormat(state.selectedLeagueFormat);
 }
+// Captain puts a ready team into this week's bracket.
+async function enterWeeklyTournament(format) {
+  leagueNextButton.disabled = true;
+  try {
+    const result = await postApi("/api/bracket/register", { format });
+    tg?.HapticFeedback?.notificationOccurred("success");
+    setStatus(result.message || "Команда записана.");
+    renderLeague(await api("/api/league"));
+  } catch (err) {
+    tg?.HapticFeedback?.notificationOccurred("error");
+    setStatus(errorMessage(err, "Не удалось записать команду."));
+  } finally { leagueNextButton.disabled = false; }
+}
+// One clear next action, based on where the player is in the tournament.
+function setNextStep(title, note, button, target) {
+  leagueNextTitle.textContent = title;
+  leagueNextNote.textContent = note;
+  leagueNextButton.hidden = !button;
+  leagueNextButton.textContent = button || "";
+  leagueNextButton.dataset.target = target || "";
+}
 function renderLeagueNextStep(user, teams) {
   if (!leagueNextTitle) return;
-  const hasFaceit = Boolean((user.faceitNickname || "").trim());
-  const hasTeam = Boolean(teams.length);
-  if (!hasFaceit) { leagueNextTitle.textContent = "Укажи FACEIT nickname"; leagueNextNote.textContent = "Матчи турнира проходят через FACEIT Hub."; leagueNextButton.textContent = "Указать"; leagueNextButton.dataset.target = "register"; return; }
-  if (!hasTeam) { leagueNextTitle.textContent = "Вступи или создай команду"; leagueNextNote.textContent = "Есть код капитана? Введи его. Хочешь собрать состав — создай заявку."; leagueNextButton.textContent = "Открыть заявку"; leagueNextButton.dataset.target = "register"; return; }
-  leagueNextTitle.textContent = "Команда готова"; leagueNextNote.textContent = "Проверь состав, пригласи игроков или смотри таблицу."; leagueNextButton.textContent = "Таблица"; leagueNextButton.dataset.target = "table";
+  if (!(user.faceitNickname || "").trim()) return setNextStep("Зарегистрируйся", "Укажи ник FACEIT, потом вступи в команду или создай свою. Это займёт минуту.", "Начать регистрацию", "register");
+  const team = teams.find(t => t.status !== "rejected");
+  if (!team) {
+    if (teams.length) return setNextStep("Заявку отклонили", "Можно подать новую заявку или вступить в другую команду.", "Подать заявку", "register");
+    return setNextStep("Найди команду", "Вступи по коду капитана или создай свою команду.", "Продолжить", "register");
+  }
+  const me = (team.members || []).find(m => Number(m.tgId) === Number(state.myTgId));
+  const isCaptain = Boolean(me && Number(me.id) === Number(team.captainId));
+  const count = team.members?.length || 0;
+  const max = Number(team.maxMembers || 0);
+  const full = max && count >= max;
+  const invite = isCaptain && !full ? ["Пригласить игроков", `invite:${team.id}`] : [null, null];
+  if (team.weekEntry === "active") return setNextStep("Ваш турнир идёт", "Смотри пары в сетке и вноси счёт после матча.", "Сетка LIVE", "live");
+  if (team.weekEntry === "registered") return setNextStep("Команда записана на эту неделю", "Запись закрывается в воскресенье в 23:59, сетка появится в понедельник в 04:00 (нужно минимум 4 команды).", "Сетка LIVE", "live");
+  if (team.weekEntry === "reserve") return setNextStep("Команда в резерве", "В сетке этой недели не хватило мест — запишитесь на следующую.", "Сетка LIVE", "live");
+  if (team.status === "pending") return setNextStep("Заявка на проверке", `Админ проверит команду «${team.name}». ${full ? "Состав собран." : `Пока собирай состав: ${count} из ${max}.`}`, ...invite);
+  if (!full) return setNextStep(`Собери состав: ${count} из ${max}`, isCaptain ? "Отправь игрокам код команды — они вступят через «Заявку»." : "Капитан ещё добирает игроков.", ...invite);
+  if (isCaptain) return setNextStep("Запиши команду на турнир недели", "Состав собран. Запись до воскресенья 23:59, сетка — в понедельник в 04:00.", "Записаться на турнир", `enter:${team.format}`);
+  return setNextStep("Состав собран", "Капитан должен записать команду на турнир этой недели.", null, null);
 }
 function showLeagueSection(name) {
   const entering = name === "register" && document.querySelector("#league-register-section:not(.is-active)");
@@ -423,6 +458,8 @@ function renderLeagueSeasons(seasons) {
 }
 function renderLeagueMyTeam(teams) {
   if (!leagueMyTeamNode) return;
+  const block = document.querySelector("#league-my-team-block");
+  if (block) block.hidden = !teams.length;
   if (!teams.length) {
     leagueMyTeamNode.innerHTML = `<button class="home-row" type="button" data-color="peach" data-go-sub="register"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="home-row-text"><strong>Пока без команды</strong><small>Вступи по коду или создай свою</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`;
     return;
@@ -628,7 +665,13 @@ liveContent?.addEventListener("click", e => {
   const roomBtn = e.target.closest("button.live-faceit-btn"); if (roomBtn) openFaceitRoomForm(roomBtn);
 });
 leagueTabs.forEach(b => b.addEventListener("click", () => showLeagueSection(b.dataset.leagueSection)));
-leagueNextButton?.addEventListener("click", () => showLeagueSection(leagueNextButton.dataset.target || "register"));
+leagueNextButton?.addEventListener("click", () => {
+  const target = leagueNextButton.dataset.target || "register";
+  if (target === "live") showView(liveView);
+  else if (target.startsWith("invite:")) openLeagueInvite(Number(target.slice(7)));
+  else if (target.startsWith("enter:")) enterWeeklyTournament(target.slice(6));
+  else showLeagueSection(target);
+});
 seriesFormatButtons.forEach(b => b.addEventListener("click", () => openSeriesRegistration(b.dataset.seriesFormat)));
 leagueRegisterButton?.addEventListener("click", leagueRegister);
 wizardBackButton?.addEventListener("click", wizardBack);
