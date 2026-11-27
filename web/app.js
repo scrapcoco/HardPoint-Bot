@@ -53,13 +53,9 @@ const leagueAdminEmpty = document.querySelector("#league-admin-empty");
 const leagueRegisterFaceit = document.querySelector("#league-register-faceit");
 const faceitVerifyStatus = document.querySelector("#faceit-verify-status");
 const leagueRegisterButton = document.querySelector("#league-register-button");
-const leagueJoinCard = document.querySelector("#league-join-card");
-const leagueJoinForm = document.querySelector("#league-join-form");
 const leagueJoinCodeInput = document.querySelector("#league-join-code");
 const leagueJoinButton = document.querySelector("#league-join-button");
 const leagueJoinNote = document.querySelector("#league-join-note");
-const leagueTeamFormatWrap = document.querySelector("#league-team-format-wrap");
-const leagueTeamFormat = document.querySelector("#league-team-format");
 const leagueTeamName = document.querySelector("#league-team-name");
 const leagueCreateTeamButton = document.querySelector("#league-create-team-button");
 const leagueInviteSheet = document.querySelector("#league-invite-sheet");
@@ -68,9 +64,6 @@ const leagueInviteCodeNode = document.querySelector("#league-invite-code");
 const leagueCopyCodeButton = document.querySelector("#league-copy-code-button");
 const leagueShareCodeButton = document.querySelector("#league-share-code-button");
 const seriesFormatButtons = document.querySelectorAll("[data-series-format]");
-const seriesBackToFormats = document.querySelector("#series-back-to-formats");
-const seriesSelectedTitle = document.querySelector("#series-selected-title");
-const seriesSelectedBadge = document.querySelector("#series-selected-badge");
 const faceitHubBanner = document.querySelector("#faceit-hub-banner");
 const faceitHubLink = document.querySelector("#faceit-hub-link");
 
@@ -90,7 +83,10 @@ async function postApi(path, payload) {
   return r.json();
 }
 function errorMessage(error, fallback) {
-  try { return JSON.parse(error.message).message || fallback; } catch { return fallback; }
+  const text = String(error?.message || "");
+  try { return JSON.parse(text).message || fallback; } catch { /* not JSON */ }
+  const m = text.match(/^\d{3}: (.+)$/s);
+  return m && !/^(Bad Request|Internal Server Error)$/.test(m[1].trim()) ? m[1].trim() : fallback;
 }
 function initialsFor(v) {
   const c = String(v || "HP").replace("@", "").trim();
@@ -392,14 +388,12 @@ function renderLeague(data) {
   if (faceitHubBanner) { faceitHubBanner.hidden = !user.faceitHubUrl; if (user.faceitHubUrl && faceitHubLink) faceitHubLink.href = user.faceitHubUrl; }
   state.myLeagueTeamIds = (state.league.myTeams || []).filter(t => t.status === "active").map(t => Number(t.id));
   renderLeagueNextStep(user, state.league.myTeams || []);
-  renderLeagueJoinAccess(user);
   renderLeagueSeasons(state.league.seasons || []);
   renderLeagueMyTeam(state.league.myTeams || []);
   renderLeagueTeams(state.league.teams || []);
   renderLeagueStandings();
   renderLeaguePending(state.league.pendingTeams || [], Boolean(user.isAdmin));
   selectSeriesFormat(state.selectedLeagueFormat);
-  syncLeagueTeamFormat();
 }
 function renderLeagueNextStep(user, teams) {
   if (!leagueNextTitle) return;
@@ -409,26 +403,17 @@ function renderLeagueNextStep(user, teams) {
   if (!hasTeam) { leagueNextTitle.textContent = "Вступи или создай команду"; leagueNextNote.textContent = "Есть код капитана? Введи его. Хочешь собрать состав — создай заявку."; leagueNextButton.textContent = "Открыть заявку"; leagueNextButton.dataset.target = "register"; return; }
   leagueNextTitle.textContent = "Команда готова"; leagueNextNote.textContent = "Проверь состав, пригласи игроков или смотри таблицу."; leagueNextButton.textContent = "Таблица"; leagueNextButton.dataset.target = "table";
 }
-function renderLeagueJoinAccess(user) {
-  if (!leagueJoinForm) return;
-  const hasFaceit = Boolean((user.faceitNickname || "").trim());
-  leagueJoinForm.hidden = !hasFaceit;
-  if (leagueJoinNote) leagueJoinNote.textContent = hasFaceit ? "Введи код капитана." : "Сначала укажи FACEIT nickname.";
-}
 function showLeagueSection(name) {
+  const entering = name === "register" && document.querySelector("#league-register-section:not(.is-active)");
   state.leagueSection = name;
   leagueTabs.forEach(b => b.classList.toggle("is-current", b.dataset.leagueSection === name));
   leagueSections.forEach(s => s.classList.toggle("is-active", s.id === `league-${name}-section`));
   if (state.activeView === leagueView) renderSubnav(groupOf(leagueView), leagueView);
+  if (entering) wizardStart();
 }
 function selectSeriesFormat(format) {
   state.selectedLeagueFormat = format === "2x2" ? "2x2" : "5x5";
-  if (leagueTeamFormat) leagueTeamFormat.value = state.selectedLeagueFormat;
-  const isDuo = state.selectedLeagueFormat === "2x2";
-  if (seriesSelectedTitle) seriesSelectedTitle.textContent = isDuo ? "Duo Strike" : "Full Squad Challenge";
-  if (seriesSelectedBadge) seriesSelectedBadge.textContent = isDuo ? "⚡ 2×2" : "🛡️ 5×5";
-  document.body.classList.toggle("series-duo", isDuo);
-  syncLeagueTeamFormat();
+  document.querySelectorAll(".wizard-format").forEach(b => b.classList.toggle("is-selected", b.dataset.format === state.selectedLeagueFormat));
 }
 function openSeriesRegistration(format) { selectSeriesFormat(format); showLeagueSection("register"); }
 function leagueStatusLabel(s) {
@@ -476,30 +461,106 @@ function renderLeaguePending(items, isAdmin) {
   if (!items.length) { leaguePendingList.innerHTML = "<p class=\"panel-note\">Нет заявок.</p>"; return; }
   leaguePendingList.innerHTML = items.map(t => `<article class="league-row league-admin-row"><div><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(t.formatTitle || t.gameTitle)} · ${escapeHtml(t.captainName || "-")}</span></div><div class="league-admin-actions"><button type="button" data-team-id="${t.id}" data-status="active">Принять</button><button type="button" data-team-id="${t.id}" data-status="rejected">Отклонить</button></div></article>`).join("");
 }
+// ── REGISTRATION WIZARD: FACEIT → join or create → done, one screen at a time ──
+const WIZARD_STEPS = { faceit: [1, "FACEIT аккаунт"], choice: [2, "Как будешь играть?"], join: [3, "Вступить по коду"], create: [3, "Новая команда"], done: [3, "Готово"] };
+const wizard = { step: "faceit", history: [] };
+const wizardBackButton = document.querySelector("#wizard-back");
+function wizardGo(step, push = true) {
+  if (push && wizard.step !== step) wizard.history.push(wizard.step);
+  wizard.step = step;
+  document.querySelectorAll("#league-register-section .wizard-step").forEach(el => { el.hidden = el.dataset.step !== step; });
+  const [num, title] = WIZARD_STEPS[step];
+  document.querySelector("#wizard-step-label").textContent = step === "done" ? "Регистрация" : `Шаг ${num} из 3`;
+  document.querySelector("#wizard-title").textContent = title;
+  document.querySelectorAll("#wizard-pips span").forEach((p, i) => p.classList.toggle("is-active", i < num));
+  wizardBackButton.hidden = step === "done";
+  if (step === "choice") document.querySelector("#wizard-faceit-name").textContent = state.league?.user?.faceitNickname || "—";
+  if (step === "create") selectSeriesFormat(state.selectedLeagueFormat);
+  window.scrollTo({ top: 0 });
+  document.querySelector(`.wizard-step[data-step="${step}"] input`)?.focus({ preventScroll: true });
+}
+function wizardBack() {
+  const prev = wizard.history.pop();
+  if (prev) wizardGo(prev, false); else showLeagueSection("overview");
+  tg?.HapticFeedback?.selectionChanged();
+}
+function wizardStart() {
+  wizard.history = [];
+  const hasFaceit = Boolean((state.league?.user?.faceitNickname || "").trim());
+  if (leagueRegisterFaceit) leagueRegisterFaceit.value = state.league?.user?.faceitNickname || "";
+  if (faceitVerifyStatus) faceitVerifyStatus.textContent = "";
+  if (leagueJoinNote) leagueJoinNote.textContent = "";
+  wizardGo(hasFaceit ? "choice" : "faceit", false);
+}
+function wizardDone(title, note, inviteCode) {
+  document.querySelector("#wizard-done-title").textContent = title;
+  document.querySelector("#wizard-done-note").textContent = note;
+  document.querySelector("#wizard-done-invite").hidden = !inviteCode;
+  document.querySelector("#wizard-done-code").textContent = inviteCode || "";
+  document.querySelector("#wizard-done-start").hidden = false;
+  wizard.history = [];
+  wizardGo("done", false);
+}
+function setBusy(button, busy, idleText) {
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? "Подождите..." : idleText;
+}
 async function leagueRegister() {
-  if (!leagueRegisterButton) return; leagueRegisterButton.disabled = true;
   const faceitNick = leagueRegisterFaceit?.value.trim() || "";
-  if (faceitNick && faceitVerifyStatus) {
-    faceitVerifyStatus.textContent = "Проверяем FACEIT...";
-    try {
-      const r = await api(`/api/faceit/verify?nickname=${encodeURIComponent(faceitNick)}`);
-      if (!r.ok) { faceitVerifyStatus.textContent = `❌ Ник «${faceitNick}» не найден`; leagueRegisterButton.disabled = false; return; }
-      faceitVerifyStatus.textContent = `✅ ${r.player.nickname} · Level ${r.player.skillLevel} · ELO ${r.player.faceitElo}`;
-    } catch { if (faceitVerifyStatus) faceitVerifyStatus.textContent = "⚠️ Не удалось проверить"; }
-  }
-  try { const result = await postApi("/api/league/register", { game: "cs2", nick: faceitNick, faceitNick }); renderLeague(result.league || {}); setStatus("Данные сохранены."); }
-  catch { setStatus("Не удалось сохранить."); }
-  finally { leagueRegisterButton.disabled = false; }
+  if (!faceitNick) { faceitVerifyStatus.textContent = "Напиши ник, под которым играешь на FACEIT."; leagueRegisterFaceit.focus(); return; }
+  setBusy(leagueRegisterButton, true, "Дальше →");
+  faceitVerifyStatus.textContent = "Проверяем ник на FACEIT...";
+  try {
+    const r = await api(`/api/faceit/verify?nickname=${encodeURIComponent(faceitNick)}`);
+    if (!r.ok) {
+      faceitVerifyStatus.textContent = `Ник «${faceitNick}» не найден на FACEIT. Проверь написание.`;
+      tg?.HapticFeedback?.notificationOccurred("error");
+      setBusy(leagueRegisterButton, false, "Дальше →");
+      return;
+    }
+    faceitVerifyStatus.textContent = `✓ ${r.player.nickname} · Level ${r.player.skillLevel} · ELO ${r.player.faceitElo}`;
+  } catch { faceitVerifyStatus.textContent = ""; }
+  try {
+    const result = await postApi("/api/league/register", { game: "cs2", nick: faceitNick, faceitNick });
+    renderLeague(result.league || {});
+    tg?.HapticFeedback?.notificationOccurred("success");
+    wizardGo("choice");
+  } catch (err) {
+    faceitVerifyStatus.textContent = errorMessage(err, "Не удалось сохранить. Попробуй ещё раз.");
+  } finally { setBusy(leagueRegisterButton, false, "Дальше →"); }
+}
+async function leagueJoinTeam() {
+  const code = leagueJoinCodeInput?.value.trim() || "";
+  if (!code) { leagueJoinNote.textContent = "Введи код от капитана."; leagueJoinCodeInput.focus(); return; }
+  setBusy(leagueJoinButton, true, "Вступить в команду");
+  try {
+    const result = await postApi("/api/league/team/join", { invite_code: code });
+    leagueJoinCodeInput.value = ""; leagueJoinNote.textContent = "";
+    renderLeague(result.league || {});
+    tg?.HapticFeedback?.notificationOccurred("success");
+    wizardDone(`Ты в команде «${result.team?.name || ""}»`, "Капитан увидит тебя в составе. Сетка турнира появится в понедельник в 04:00.");
+  } catch (err) {
+    tg?.HapticFeedback?.notificationOccurred("error");
+    leagueJoinNote.textContent = errorMessage(err, "Код не подошёл. Проверь его у капитана.");
+  } finally { setBusy(leagueJoinButton, false, "Вступить в команду"); }
 }
 async function leagueCreateTeam() {
-  if (!leagueCreateTeamButton) return; leagueCreateTeamButton.disabled = true;
-  try { const result = await postApi("/api/league/team", { game: "cs2", format: leagueTeamFormat.value, name: leagueTeamName.value.trim() }); if (leagueTeamName) leagueTeamName.value = ""; renderLeague(result.league || {}); setStatus("Заявка отправлена."); }
-  catch { setStatus("Не удалось."); }
-  finally { syncLeagueTeamFormat(); }
-}
-function syncLeagueTeamFormat() {
-  if (leagueTeamFormatWrap) leagueTeamFormatWrap.hidden = false;
-  if (leagueCreateTeamButton) leagueCreateTeamButton.disabled = !leagueTeamFormat?.value;
+  const name = leagueTeamName?.value.trim() || "";
+  const note = document.querySelector("#league-create-note");
+  if (!name) { note.textContent = "Придумай название команды."; leagueTeamName.focus(); return; }
+  setBusy(leagueCreateTeamButton, true, "Подать заявку");
+  try {
+    const result = await postApi("/api/league/team", { game: "cs2", format: state.selectedLeagueFormat, name });
+    leagueTeamName.value = "";
+    renderLeague(result.league || {});
+    const team = (result.league?.myTeams || []).filter(t => t.name === name).sort((a, z) => Number(z.id) - Number(a.id))[0];
+    tg?.HapticFeedback?.notificationOccurred("success");
+    wizardDone("Заявка отправлена", `Команда «${name}» (${state.selectedLeagueFormat === "2x2" ? "2×2" : "5×5"}) на проверке у админа. А пока позови игроков — отправь им этот код:`, team?.inviteToken);
+  } catch (err) {
+    tg?.HapticFeedback?.notificationOccurred("error");
+    note.textContent = errorMessage(err, "Не удалось отправить заявку. Попробуй ещё раз.");
+  } finally { setBusy(leagueCreateTeamButton, false, "Подать заявку"); }
 }
 async function leagueUpdateTeam(teamId, status) {
   try { const result = await postApi("/api/league/team/status", { teamId, status }); renderLeague(result.league || {}); setStatus(status === "active" ? "Принята." : "Отклонена."); }
@@ -517,16 +578,10 @@ async function copyLeagueInviteCode() {
   await navigator.clipboard.writeText(leagueInviteCodeNode?.textContent.trim() || "");
   if (leagueCopyCodeButton) { leagueCopyCodeButton.textContent = "Скопировано ✓"; setTimeout(() => { leagueCopyCodeButton.textContent = "Скопировать"; }, 2000); }
 }
-function shareLeagueInviteCode() {
-  const code = leagueInviteCodeNode?.textContent.trim() || "";
+function shareLeagueInviteCode(codeOverride) {
+  const code = (typeof codeOverride === "string" && codeOverride) || leagueInviteCodeNode?.textContent.trim() || "";
   const url = `https://t.me/share/url?url=&text=${encodeURIComponent(`Вступай в команду HardPoint Series!\nКод: ${code}`)}`;
   if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
-}
-async function leagueJoinTeam() {
-  if (!leagueJoinButton) return; leagueJoinButton.disabled = true; leagueJoinButton.textContent = "Проверяем...";
-  try { const result = await postApi("/api/league/team/join", { invite_code: leagueJoinCodeInput?.value.trim() || "" }); if (leagueJoinCodeInput) leagueJoinCodeInput.value = ""; renderLeague(result.league || {}); setStatus(`Ты в команде ${result.team?.name || ""}!`); showLeagueSection("overview"); }
-  catch (err) { if (leagueJoinNote) leagueJoinNote.textContent = errorMessage(err, "Не удалось."); }
-  finally { leagueJoinButton.disabled = false; leagueJoinButton.textContent = "Вступить"; }
 }
 
 // ── LOAD ──
@@ -567,11 +622,16 @@ leagueActionJoin?.addEventListener("click", () => showLeagueSection("register"))
 leagueActionCreate?.addEventListener("click", () => showLeagueSection("register"));
 leagueActionTable?.addEventListener("click", () => showLeagueSection("table"));
 seriesFormatButtons.forEach(b => b.addEventListener("click", () => openSeriesRegistration(b.dataset.seriesFormat)));
-seriesBackToFormats?.addEventListener("click", () => showLeagueSection("overview"));
 leagueRegisterButton?.addEventListener("click", leagueRegister);
+wizardBackButton?.addEventListener("click", wizardBack);
+document.querySelectorAll("[data-wizard-go]").forEach(b => b.addEventListener("click", () => { wizardGo(b.dataset.wizardGo); tg?.HapticFeedback?.selectionChanged(); }));
+document.querySelector("#wizard-change-faceit")?.addEventListener("click", () => wizardGo("faceit"));
+document.querySelectorAll(".wizard-format").forEach(b => b.addEventListener("click", () => { selectSeriesFormat(b.dataset.format); tg?.HapticFeedback?.selectionChanged(); }));
+document.querySelector("#wizard-done-button")?.addEventListener("click", () => showLeagueSection("overview"));
+document.querySelector("#wizard-share-button")?.addEventListener("click", () => shareLeagueInviteCode(document.querySelector("#wizard-done-code").textContent.trim()));
+[[leagueRegisterFaceit, leagueRegister], [leagueJoinCodeInput, leagueJoinTeam], [leagueTeamName, leagueCreateTeam]].forEach(([input, action]) => input?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); action(); } }));
 leagueJoinCodeInput?.addEventListener("input", () => { leagueJoinCodeInput.value = leagueJoinCodeInput.value.toUpperCase(); });
 leagueJoinButton?.addEventListener("click", leagueJoinTeam);
-leagueTeamFormat?.addEventListener("change", syncLeagueTeamFormat);
 leagueCreateTeamButton?.addEventListener("click", leagueCreateTeam);
 leagueStandingsTabs?.addEventListener("click", e => { const b = e.target.closest("button[data-standing-tab]"); if (!b) return; state.leagueStandingTab = b.dataset.standingTab; renderLeagueStandings(); });
 leagueMyTeamNode?.addEventListener("click", e => { const b = e.target.closest("button[data-team-id]"); if (!b) return; openLeagueInvite(Number(b.dataset.teamId)); });

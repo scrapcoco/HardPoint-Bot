@@ -141,3 +141,38 @@ h1,h2,h3,.qmb-title,.club-head h2{font-family:Oswald,Montserrat,sans-serif;lette
 .rank-panel{border-left:4px solid var(--cyan)!important}
 .link-panel{border-left:4px solid var(--cyan)!important}
 .panel-note{font-size:.76rem!important;color:var(--muted)!important}
+
+/* ── REGISTRATION WIZARD: one step per screen ── */
+.series-wizard-head{grid-template-columns:auto minmax(0,1fr)!important;border-left:4px solid var(--pink)!important}
+.series-wizard-head > button{color:var(--ink)!important;background:var(--panel-strong)!important}
+.series-wizard-head > button[hidden]{display:none}
+.series-wizard-head h2{font-size:1.15rem!important}
+#wizard-pips span.is-active{background:var(--pink)}
+.wizard-step[hidden]{display:none!important}
+.wizard-lead{margin:0 0 .2rem;color:var(--soft);font-size:.9rem;font-weight:600;line-height:1.45}
+.wizard-lead strong{color:var(--ink)}
+.wizard-step[data-step="choice"] .wizard-lead{margin:.9rem .15rem .55rem}
+.wizard-sub{margin:.2rem 0 0;color:var(--muted);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.wizard-faceit-line{margin:.8rem .15rem 0;color:var(--muted);font-size:.8rem;font-weight:600}
+.wizard-faceit-line strong{color:var(--ink)}
+.wizard-link{padding:0;border:0;background:none;color:var(--pink);font:inherit;font-weight:800;cursor:pointer}
+.wizard-formats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.wizard-format{display:grid;gap:.2rem;padding:.8rem .7rem;border:2px solid var(--line);border-radius:.9rem;background:var(--panel-strong);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.wizard-format strong{font-family:Oswald,Montserrat,sans-serif;font-size:1.35rem}
+.wizard-format small{color:var(--soft);font-size:.74rem;font-weight:700}
+.wizard-format em{color:var(--muted);font-size:.7rem;font-style:normal;font-weight:600}
+.wizard-format.is-selected{border-color:var(--pink);background:rgba(255,79,216,.12)}
+.wizard-format.is-selected strong{color:var(--pink)}
+#league-register-section .league-form button,#wizard-share-button{min-height:2.9rem;border:0;border-radius:.9rem;background:var(--cream)!important;color:var(--ink-dark)!important;font:inherit;font-size:.92rem;font-weight:800;cursor:pointer}
+#league-register-section .league-form button:disabled{opacity:.6}
+.wizard-done{justify-items:center;text-align:center;padding:1.2rem .9rem!important}
+.wizard-done-icon{display:grid;place-items:center;width:3.4rem;height:3.4rem;border-radius:50%;background:rgba(62,230,224,.15);color:var(--cyan);font-size:1.7rem;font-weight:900}
+.wizard-done h2{margin:.2rem 0 0;font-size:1.3rem}
+.wizard-invite{display:grid;gap:.4rem;width:100%;padding:.8rem;border:1px dashed rgba(255,79,216,.5);border-radius:.9rem;background:rgba(255,79,216,.07)}
+.wizard-invite[hidden],.wizard-done .start-warning-banner[hidden]{display:none}
+.wizard-invite span{color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.wizard-invite strong{font-family:Oswald,Montserrat,sans-serif;font-size:1.8rem;letter-spacing:2px;user-select:all}
+.wizard-done .start-warning-banner{width:100%;box-sizing:border-box;text-align:left}
+.wizard-secondary{width:100%;min-height:2.9rem;border:1px solid var(--line);border-radius:.9rem;background:var(--panel-strong);color:var(--ink);font:inherit;font-size:.92rem;font-weight:800;cursor:pointer}
+.league-panel:has(#league-register-section.is-active) .series-season-hero{display:none!important}
+.wizard-choice{margin-top:.7rem}

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/styles_club.css?v=52">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/styles_theme.css?v=4">
+    <link rel="stylesheet" href="/styles_theme.css?v=5">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -111,38 +111,76 @@
             <article class="league-card"><p class="label">Моя команда</p><div id="league-my-team" class="league-list compact"></div></article>
             <article class="league-card"><p class="label">Открытые серии</p><div id="league-seasons" class="league-pill-list"></div></article>
           </div>
+          <!-- REGISTRATION: one step per screen -->
           <div id="league-register-section" class="league-section">
-            <article class="series-wizard-head"><button id="series-back-to-formats" type="button">‹</button><div><p class="label">Регистрация</p><h2 id="series-selected-title">Full Squad Challenge</h2><span id="series-selected-badge">🛡️ 5×5 · Формат выбран</span></div></article>
-            <div class="series-step-pips"><span class="is-active"></span><span></span><span></span></div>
-            <article class="league-card"><div class="section-title compact-title"><p class="label">Шаг 1</p><h2>FACEIT аккаунт</h2></div><p class="panel-note">Укажи свой FACEIT nickname.</p><div class="league-form"><input id="league-register-faceit" type="text" maxlength="40" placeholder="FACEIT nickname" autocomplete="off" spellcheck="false"><p id="faceit-verify-status" class="panel-note"></p><button id="league-register-button" type="button">Сохранить</button></div></article>
-            <article id="league-join-card" class="league-card"><div class="section-title compact-title"><p class="label">Шаг 2</p><h2>Способ участия</h2></div><p class="panel-note">Есть код капитана — введи его.</p><div id="league-join-form" class="league-form"><input id="league-join-code" type="text" maxlength="9" placeholder="HL-XXXXXX" autocomplete="off"><button id="league-join-button" type="button">🔗 Вступить по коду</button></div><p id="league-join-note" class="panel-note">Сначала укажи FACEIT nickname.</p></article>
+            <article class="series-wizard-head"><button id="wizard-back" type="button" aria-label="Назад">‹</button><div><p id="wizard-step-label" class="label">Шаг 1 из 3</p><h2 id="wizard-title">FACEIT аккаунт</h2></div></article>
+            <div id="wizard-pips" class="series-step-pips"><span></span><span></span><span></span></div>
 
-            <!-- Создать команду -->
-            <article class="league-card">
-              <div class="section-title compact-title"><p class="label">Капитан</p><h2>Создать команду</h2></div>
-
-              <!-- ⚠️ Уведомление о /start -->
-              <div class="start-warning-banner">
-                <div class="start-warning-icon">⚠️</div>
-                <div class="start-warning-body">
-                  <p class="start-warning-title">Важно для капитанов</p>
-                  <p class="start-warning-text">Чтобы получать уведомления о матчах — напиши <strong>/start</strong> боту. Иначе бот не сможет написать тебе в личку.</p>
-                  <button id="open-bot-start" type="button" class="start-warning-btn">Написать /start боту →</button>
-                </div>
-              </div>
-
+            <article class="league-card wizard-step" data-step="faceit">
+              <p class="wizard-lead">Матчи турнира проходят на FACEIT. Напиши свой ник там — мы проверим, что он существует.</p>
               <div class="league-form">
-                <div id="league-team-format-wrap" class="league-format-wrap">
-                  <select id="league-team-format" aria-label="Формат CS2">
-                    <option value="">Выбери формат</option>
-                    <option value="5x5">5×5</option>
-                    <option value="2x2">2×2</option>
-                  </select>
-                </div>
-                <input id="league-team-name" type="text" maxlength="40" placeholder="Название команды">
-                <button id="league-create-team-button" type="button">✅ Подать заявку</button>
+                <input id="league-register-faceit" type="text" maxlength="40" placeholder="Ник на FACEIT" autocomplete="off" spellcheck="false" enterkeyhint="next">
+                <p id="faceit-verify-status" class="panel-note"></p>
+                <button id="league-register-button" type="button">Дальше →</button>
               </div>
-              <p class="panel-note">Команда попадёт на проверку админу.</p>
+            </article>
+
+            <div class="wizard-step" data-step="choice" hidden>
+              <div class="home-group wizard-choice">
+                <button class="home-row" type="button" data-color="pink" data-wizard-go="join">
+                  <span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span>
+                  <span class="home-row-text"><strong>У меня есть код команды</strong><small>Капитан уже создал команду и дал код</small></span>
+                  <span class="home-row-arrow" aria-hidden="true">›</span>
+                </button>
+                <button class="home-row" type="button" data-color="peach" data-wizard-go="create">
+                  <span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8 7.5 9.5 4.3-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 9v6M9 12h6"/></svg></span>
+                  <span class="home-row-text"><strong>Создать свою команду</strong><small>Ты капитан: соберёшь состав сам</small></span>
+                  <span class="home-row-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+              <p class="wizard-faceit-line">FACEIT: <strong id="wizard-faceit-name">—</strong> · <button id="wizard-change-faceit" type="button" class="wizard-link">изменить</button></p>
+            </div>
+
+            <article class="league-card wizard-step" data-step="join" hidden>
+              <p class="wizard-lead">Введи код, который дал капитан. Он выглядит так: <strong>HL-XXXXXX</strong></p>
+              <div class="league-form">
+                <input id="league-join-code" type="text" maxlength="9" placeholder="HL-XXXXXX" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+                <p id="league-join-note" class="panel-note"></p>
+                <button id="league-join-button" type="button">Вступить в команду</button>
+              </div>
+            </article>
+
+            <article class="league-card wizard-step" data-step="create" hidden>
+              <p class="wizard-sub">Формат</p>
+              <div class="wizard-formats">
+                <button class="wizard-format" type="button" data-format="5x5"><strong>5×5</strong><small>Full Squad · 5 игроков</small><em>приз 8 ч игры</em></button>
+                <button class="wizard-format" type="button" data-format="2x2"><strong>2×2</strong><small>Duo Strike · 2 игрока</small><em>приз 4 ч игры</em></button>
+              </div>
+              <p class="wizard-sub">Название команды</p>
+              <div class="league-form">
+                <input id="league-team-name" type="text" maxlength="40" placeholder="Например, HP Wolves" enterkeyhint="done">
+                <p id="league-create-note" class="panel-note">Заявку проверит админ, после этого команда попадёт в сетку.</p>
+                <button id="league-create-team-button" type="button">Подать заявку</button>
+              </div>
+            </article>
+
+            <article class="league-card wizard-step wizard-done" data-step="done" hidden>
+              <div class="wizard-done-icon">✓</div>
+              <h2 id="wizard-done-title">Готово</h2>
+              <p id="wizard-done-note" class="wizard-lead"></p>
+              <div id="wizard-done-invite" class="wizard-invite" hidden>
+                <span>Код для игроков</span>
+                <strong id="wizard-done-code">HL-XXXXXX</strong>
+                <button id="wizard-share-button" type="button">Отправить код в Telegram</button>
+              </div>
+              <div id="wizard-done-start" class="start-warning-banner" hidden>
+                <div class="start-warning-body">
+                  <p class="start-warning-title">Включи уведомления о матчах</p>
+                  <p class="start-warning-text">Напиши <strong>/start</strong> боту, иначе он не сможет написать тебе, когда начнётся матч.</p>
+                  <button id="open-bot-start" type="button" class="start-warning-btn">Открыть бота →</button>
+                </div>
+              </div>
+              <button id="wizard-done-button" type="button" class="wizard-secondary">К турниру</button>
             </article>
           </div>
           <div id="league-table-section" class="league-section">
@@ -203,6 +241,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=55"></script>
+    <script src="/app.js?v=57"></script>
   </body>
 </html>
