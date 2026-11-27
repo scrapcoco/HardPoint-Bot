@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/styles_club.css?v=52">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/styles_theme.css?v=2">
+    <link rel="stylesheet" href="/styles_theme.css?v=3">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -91,29 +91,7 @@
 
       <!-- PROFILE VIEW -->
       <div id="profile-view" class="app-view">
-        <section class="profile-summary-panel">
-          <div class="profile-summary-head"><div><p class="label">Личный центр</p><h2>Профиль HardPoint</h2></div><img src="/assets/hardpoint-logo.png" alt="HardPoint"></div>
-        </section>
-        <section class="profile-panel">
-          <div class="section-title"><p class="label">Профиль</p><h2>Логин в клубе</h2></div>
-          <div class="login-form">
-            <input id="club-login" type="text" maxlength="40" autocomplete="off" placeholder="Введите логин" aria-label="Логин в клубе">
-            <button id="save-login-button" type="button">Сохранить</button>
-          </div>
-          <p class="panel-note">Этот логин нужен только для начисления наград.</p>
-        </section>
-        <section class="profile-empty-panel">
-          <p class="label">Ранги</p>
-          <div class="rank-list">
-            <span>🥉 Recruit — 0</span><span>🥈 Rookie — 10</span><span>🥇 Grinder — 20</span>
-            <span>💠 Veteran — 30</span><span>🔥 Elite — 40</span><span>👑 Legend — 50</span>
-          </div>
-        </section>
-      </div>
-
-      <!-- INVITES VIEW -->
-      <div id="invites-view" class="app-view">
-        <section class="rank-panel home-rank-panel" style="margin-top:.65rem">
+        <section class="rank-panel home-rank-panel">
           <div class="rank-head">
             <div class="rank-info"><p class="label">Текущий ранг</p><h2 id="rank-title">🥉 Recruit</h2></div>
             <strong id="rank-score">0</strong>
@@ -127,10 +105,6 @@
             <button type="button"><span>🚪 Посещений</span><strong id="rank-visits">0</strong></button>
           </div>
         </section>
-        <section class="rank-hint-panel">
-          <span>💡 Следующий шаг</span>
-          <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
-        </section>
         <section class="profile-streak home-streak">
           <div class="profile-streak-head"><span>🔥 Серия входов</span><strong><span id="profile-streak-days">0</span>/30</strong></div>
           <div class="streak-track">
@@ -142,20 +116,45 @@
           </div>
           <div class="streak-rewards"><span>+50</span><span>+150</span><span>+300</span><span>+500</span></div>
         </section>
+        <section class="profile-panel">
+          <div class="section-title"><p class="label">Профиль</p><h2>Логин в клубе</h2></div>
+          <div class="login-form">
+            <input id="club-login" type="text" maxlength="40" autocomplete="off" placeholder="Введите логин" aria-label="Логин в клубе">
+            <button id="save-login-button" type="button">Сохранить</button>
+          </div>
+          <p class="panel-note">Этот логин нужен только для начисления наград.</p>
+        </section>
+        <details class="profile-ranks">
+          <summary>Все ранги и как их получить</summary>
+          <div class="rank-list">
+            <span>🥉 Recruit — 0</span><span>🥈 Rookie — 10</span><span>🥇 Grinder — 20</span>
+            <span>💠 Veteran — 30</span><span>🔥 Elite — 40</span><span>👑 Legend — 50</span>
+          </div>
+          <p class="panel-note">Очки ранга — это приглашённые друзья и посещения клуба.</p>
+        </details>
+      </div>
+
+      <!-- INVITES VIEW -->
+      <div id="invites-view" class="app-view">
+        <section class="link-panel">
+          <p class="label">Твоя ссылка для друзей</p>
+          <p class="panel-note">Друг вступает по ссылке — ты получаешь +20 монет и очки в недельном топе.</p>
+          <div class="invite-box" id="invite-link">Загрузка...</div>
+          <div class="actions">
+            <button id="copy-button" type="button">Скопировать</button>
+            <button id="share-button" type="button">Поделиться</button>
+          </div>
+        </section>
+        <section class="rank-hint-panel">
+          <span>💡 Следующий шаг</span>
+          <strong id="rank-hint-text">Пригласи друзей и прокачай ранг.</strong>
+        </section>
         <section class="awards-panel">
           <div class="section-title"><p class="label">Награды</p><h2>Призы недели</h2></div>
           <div class="awards-grid">
             <div class="award-card"><strong>1 место</strong><span>8 часов игры</span></div>
             <div class="award-card"><strong>2 место</strong><span>5 часов игры</span></div>
             <div class="award-card"><strong>3 место</strong><span>3 часа игры</span></div>
-          </div>
-        </section>
-        <section class="link-panel">
-          <p class="label">Персональная ссылка</p>
-          <div class="invite-box" id="invite-link">Загрузка...</div>
-          <div class="actions">
-            <button id="copy-button" type="button">Скопировать</button>
-            <button id="share-button" type="button">Поделиться</button>
           </div>
         </section>
         <section class="top-panel">
@@ -395,6 +394,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=53"></script>
+    <script src="/app.js?v=54"></script>
   </body>
 </html>

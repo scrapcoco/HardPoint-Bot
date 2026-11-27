@@ -222,16 +222,29 @@ function showView(view, options = {}) {
 const NAV_GROUPS = [
   { key: "home", views: [[homeView, "Главная"]] },
   { key: "club", views: [[clubView, "Клуб"]] },
-  { key: "tournaments", views: [[leagueView, "Series"], [liveView, "Сетка LIVE"], [esportView, "Команды HP"]] },
-  { key: "profile", views: [[profileView, "Профиль"], [missionsView, "Миссии"], [clansView, "Кланы"], [invitesView, "Пригласить"]] },
+  { key: "tournaments", views: [[leagueView, "Турнир", "overview"], [leagueView, "Регистрация", "register"], [liveView, "Сетка LIVE"], [leagueView, "Таблица", "table"], [esportView, "Команды HP"], [leagueView, "Админ", "admin", "admin"]] },
+  { key: "profile", views: [[profileView, "Мой профиль"], [missionsView, "Миссии"], [invitesView, "Пригласить"], [clansView, "Кланы"]] },
 ];
 function groupOf(view) { return NAV_GROUPS.find(g => g.views.some(([v]) => v === view)) || NAV_GROUPS[0]; }
 function renderSubnav(group, active) {
   if (!subnav) return;
   if (group.views.length < 2) { subnav.hidden = true; subnav.innerHTML = ""; return; }
   subnav.hidden = false;
-  subnav.innerHTML = group.views.map(([v, label], i) => `<button type="button" class="subnav-btn${v === active ? " is-current" : ""}" data-subview="${i}">${label}</button>`).join("");
-  subnav.onclick = e => { const b = e.target.closest("[data-subview]"); if (b) { showView(group.views[Number(b.dataset.subview)][0]); tg?.HapticFeedback?.selectionChanged(); } };
+  const isAdmin = document.body.classList.contains("has-league-admin");
+  subnav.innerHTML = group.views.map(([v, label, sec, only], i) => {
+    if (only === "admin" && !isAdmin) return "";
+    const current = v === active && (!sec || sec === (state.leagueSection || "overview"));
+    return `<button type="button" class="subnav-btn${current ? " is-current" : ""}" data-subview="${i}">${label}</button>`;
+  }).join("");
+  subnav.querySelector(".is-current")?.scrollIntoView({ block: "nearest", inline: "center" });
+  subnav.onclick = e => {
+    const b = e.target.closest("[data-subview]"); if (!b) return;
+    const [v, , sec] = group.views[Number(b.dataset.subview)];
+    if (sec) state.leagueSection = sec;
+    showView(v);
+    if (sec) showLeagueSection(sec);
+    tg?.HapticFeedback?.selectionChanged();
+  };
 }
 function openGroup(key) {
   const group = NAV_GROUPS.find(g => g.key === key);
@@ -674,8 +687,10 @@ function renderLeagueJoinAccess(user) {
   if (leagueJoinNote) leagueJoinNote.textContent = hasFaceit ? "Введи код капитана." : "Сначала укажи FACEIT nickname.";
 }
 function showLeagueSection(name) {
+  state.leagueSection = name;
   leagueTabs.forEach(b => b.classList.toggle("is-current", b.dataset.leagueSection === name));
   leagueSections.forEach(s => s.classList.toggle("is-active", s.id === `league-${name}-section`));
+  if (state.activeView === leagueView) renderSubnav(groupOf(leagueView), leagueView);
 }
 function selectSeriesFormat(format) {
   state.selectedLeagueFormat = format === "2x2" ? "2x2" : "5x5";
