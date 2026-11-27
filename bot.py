@@ -357,6 +357,7 @@ def init_db() -> None:
         ensure_league_member_columns(connection)
         ensure_league_user_faceit_column(connection)
         ensure_tournament_indexes(connection)
+        ensure_bracket_faceit_column(connection)
         ensure_weekly_period_start(connection)
         ensure_default_league_seasons(connection)
         connection.commit()
@@ -365,6 +366,12 @@ def init_db() -> None:
 def ensure_tournament_indexes(connection: sqlite3.Connection) -> None:
     connection.execute("CREATE INDEX IF NOT EXISTS idx_tournament_season ON tournaments (season_id)")
     connection.execute("CREATE INDEX IF NOT EXISTS idx_bracket_tournament ON tournament_bracket_matches (tournament_id, round)")
+
+
+def ensure_bracket_faceit_column(connection: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(tournament_bracket_matches)").fetchall()}
+    if "faceit_match_url" not in columns:
+        connection.execute("ALTER TABLE tournament_bracket_matches ADD COLUMN faceit_match_url TEXT NOT NULL DEFAULT ''")
 
 
 def ensure_league_user_faceit_column(connection: sqlite3.Connection) -> None:
@@ -1739,6 +1746,7 @@ def serialize_bracket(connection: sqlite3.Connection, tournament_id: int) -> Dic
             "score2": match["score2"],
             "status": match["status"],
             "scheduledAt": match["scheduled_at"],
+            "faceitMatchUrl": match["faceit_match_url"] or "",
             "reportedTeamIds": [
                 int(r["team_id"])
                 for r in connection.execute(
@@ -3059,7 +3067,7 @@ async def api_bracket(request: web.Request) -> web.Response:
             (int(tournament["id"]),),
         ).fetchone()["c"]
         bracket["registeredTeams"] = int(reg_count)
-        return web.json_response({"bracket": bracket, "viewer": bracket_viewer(request, connection)})
+        return web.json_response({"bracket": bracket, "viewer": bracket_viewer(request, connection), "faceitHubUrl": FACEIT_HUB_URL})
 
 
 async def api_bracket_register(request: web.Request) -> web.Response:
@@ -3189,6 +3197,37 @@ async def api_bracket_result(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "message": message, "bracket": bracket})
 
 
+FACEIT_ROOM_RE = re.compile(r"^https://(www\.)?faceit\.com/[A-Za-z0-9_./\-]+$")
+
+
+async def api_bracket_faceit_room(request: web.Request) -> web.Response:
+    """Captain or admin saves the FACEIT room link for a bracket match, so both teams see it.
+    (FACEIT's public API cannot create hub matches, so the room is created in the Hub by hand.)"""
+    user = user_from_init_data(request)
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError as error:
+        raise web.HTTPBadRequest(reason="Bad JSON") from error
+    match_id = int(payload.get("matchId") or 0)
+    url = str(payload.get("url") or "").strip().split("?")[0]
+    if url and not FACEIT_ROOM_RE.match(url):
+        return web.json_response({"ok": False, "message": "Нужна ссылка вида https://www.faceit.com/…/room/…"}, status=400)
+    with closing(db()) as connection:
+        league_user = ensure_league_user(connection, user)
+        match = connection.execute("SELECT * FROM tournament_bracket_matches WHERE id = ?", (match_id,)).fetchone()
+        if not match or not match["team1_id"] or not match["team2_id"]:
+            return web.json_response({"ok": False, "message": "Матч не найден."}, status=404)
+        captain_team = connection.execute(
+            "SELECT id FROM league_teams WHERE captain_id = ? AND id IN (?, ?)",
+            (int(league_user["id"]), int(match["team1_id"]), int(match["team2_id"])),
+        ).fetchone()
+        if not captain_team and not is_league_admin(connection, int(user["id"])):
+            return web.json_response({"ok": False, "message": "Ссылку добавляют капитаны этих команд или админ."}, status=403)
+        connection.execute("UPDATE tournament_bracket_matches SET faceit_match_url = ? WHERE id = ?", (url, match_id))
+        connection.commit()
+    return web.json_response({"ok": True, "faceitMatchUrl": url, "message": "Ссылка на комнату сохранена." if url else "Ссылка удалена."})
+
+
 async def api_faceit_verify(request: web.Request) -> web.Response:
     """Verify FACEIT nickname and return player info"""
     user_from_init_data(request)
@@ -3211,7 +3250,8 @@ async def api_faceit_verify(request: web.Request) -> web.Response:
 
 
 async def web_index(request: web.Request) -> web.FileResponse:
-    return web.FileResponse(WEB_DIR / "index.html")
+    # Always revalidate the page so new app.js?v=... links reach users right after a deploy.
+    return web.FileResponse(WEB_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 async def start_web_server(application: Application) -> web.AppRunner:
@@ -3244,6 +3284,7 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_get("/api/bracket", api_bracket)
     web_app.router.add_post("/api/bracket/register", api_bracket_register)
     web_app.router.add_post("/api/bracket/result", api_bracket_result)
+    web_app.router.add_post("/api/bracket/faceit-room", api_bracket_faceit_room)
     web_app.router.add_get("/api/faceit/verify", api_faceit_verify)
     web_app.router.add_static("/assets", WEB_DIR / "assets")
     web_app.router.add_static("/", WEB_DIR)

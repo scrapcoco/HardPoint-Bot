@@ -70,3 +70,6 @@
 .live-score-form label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-score-form input{width:3.4rem;padding:.35rem;border:1px solid var(--line);border-radius:.5rem;color:var(--ink);background:var(--field);font:inherit;font-size:.85rem;font-weight:900;text-align:center}
 .live-score-form button{padding:.45rem;border:0;border-radius:.6rem;color:#151515;background:var(--yellow);font:inherit;font-size:.72rem;font-weight:950;cursor:pointer}
+.live-score-form input[type=url]{width:100%;text-align:left;font-size:.72rem;font-weight:700}
+.live-faceit-hub{background:var(--field)!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+button.live-faceit-link{display:block;width:calc(100% - 1rem);margin:.4rem .5rem .5rem;font:inherit;font-size:.68rem;font-weight:900;cursor:pointer}

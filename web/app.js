@@ -334,13 +334,9 @@ function roundLabel(rnd, total) {
   if (rnd === total - 3) return "1/8";
   return `Р${rnd}`;
 }
-function isCaptainOfMatch(m) {
-  if (!state.myLeagueTeamIds.length) return false;
-  return (m.team1?.id && state.myLeagueTeamIds.includes(m.team1.id)) ||
-         (m.team2?.id && state.myLeagueTeamIds.includes(m.team2.id));
-}
 function renderLiveBracket(data) {
   state.liveViewer = data.viewer || { isAdmin: false, captainTeamIds: [] };
+  state.faceitHubUrl = data.faceitHubUrl || "";
   if (!data.bracket) {
     liveContent.innerHTML = `<div class="live-reg-state"><div class="live-reg-icon">📋</div><h3>Идёт регистрация</h3><p>Сетка будет сгенерирована в понедельник в 04:00</p><div class="live-reg-count">${data.registeredTeams || 0} команд зарегистрировано</div></div>`;
     return;
@@ -383,9 +379,10 @@ function renderLiveMatch(m) {
   const s1 = m.score1 != null ? m.score1 : "—";
   const s2 = m.score2 != null ? m.score2 : "—";
   let faceitBtn = "";
-  if (m.status === "pending" && t1 && t2) {
-    if (m.faceitMatchUrl) faceitBtn = `<a href="${escapeHtml(m.faceitMatchUrl)}" target="_blank" class="live-faceit-link">🔗 Открыть комнату FACEIT</a>`;
-    else if (isCaptainOfMatch(m)) faceitBtn = `<button class="live-faceit-btn" type="button" data-match-id="${m.id}">🎮 Создать комнату FACEIT</button>`;
+  if (["pending", "disputed"].includes(m.status) && t1 && t2) {
+    const canEdit = Boolean(myCaptainTeamInMatch(m) || state.liveViewer.isAdmin);
+    if (m.faceitMatchUrl) faceitBtn = `<button class="live-faceit-link" type="button" data-open-url="${escapeHtml(m.faceitMatchUrl)}">🔗 Открыть комнату FACEIT</button>`;
+    else if (canEdit) faceitBtn = `<button class="live-faceit-btn" type="button" data-match-id="${m.id}">🎮 Комната FACEIT</button>`;
   }
   return `<div class="live-match" data-match-id="${m.id}"><div class="${barClass}">${barText}</div><div class="live-team ${t1cls}"><span>${escapeHtml(t1?.name || "TBD")}</span><b>${s1}</b></div><div class="live-divider"></div><div class="live-team ${t2cls}"><span>${escapeHtml(t2?.name || "TBD")}</span><b>${s2}</b></div>${faceitBtn}${renderScoreControls(m)}</div>`;
 }
@@ -450,16 +447,22 @@ function switchLiveFormat(fmt) {
   liveTab2x2.classList.toggle("is-active", fmt === "2x2");
   loadLiveBracket();
 }
-async function createFaceitRoom(matchId, btn) {
-  btn.disabled = true; btn.textContent = "⏳ Создаём...";
-  try {
-    const result = await postApi("/api/bracket/create-faceit-room", { matchId: Number(matchId) });
-    if (result.ok && result.faceitMatchUrl) {
-      const link = document.createElement("a"); link.href = result.faceitMatchUrl; link.target = "_blank"; link.className = "live-faceit-link"; link.textContent = "🔗 Открыть комнату FACEIT";
-      btn.replaceWith(link); tg?.HapticFeedback?.notificationOccurred("success"); setStatus("Комната создана!");
-    } else if (result.fallback) { btn.textContent = "🎮 Создать вручную"; btn.disabled = false; if (result.faceitHubUrl && tg?.openLink) tg.openLink(result.faceitHubUrl);
-    } else if (result.already) { const link = document.createElement("a"); link.href = result.faceitMatchUrl; link.target = "_blank"; link.className = "live-faceit-link"; link.textContent = "🔗 Открыть комнату FACEIT"; btn.replaceWith(link); }
-  } catch (err) { btn.disabled = false; btn.textContent = "🎮 Создать комнату FACEIT"; setStatus(errorMessage(err, "Не удалось."));  }
+// FACEIT room: created by hand in the Hub, then the link is saved so both teams see it.
+function openFaceitRoomForm(btn) {
+  const card = btn.closest(".live-match");
+  card.querySelector(".live-score-form")?.remove();
+  const form = document.createElement("form");
+  form.className = "live-score-form";
+  form.innerHTML = `${state.faceitHubUrl ? `<button type="button" class="live-faceit-hub" data-open-url="${escapeHtml(state.faceitHubUrl)}">1. Создать матч в Hub FACEIT ↗</button>` : ""}<input type="url" name="url" placeholder="2. Вставьте ссылку на комнату" required><button type="submit">Сохранить ссылку</button>`;
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const submit = form.querySelector("button[type=submit]"); submit.disabled = true;
+    try {
+      const result = await postApi("/api/bracket/faceit-room", { matchId: Number(btn.dataset.matchId), url: form.url.value.trim() });
+      tg?.HapticFeedback?.notificationOccurred("success"); setStatus(result.message || "Сохранено."); loadLiveBracket();
+    } catch (err) { setStatus(errorMessage(err, "Не удалось сохранить ссылку.")); submit.disabled = false; }
+  });
+  card.appendChild(form);
 }
 
 // ── RENDER ──
@@ -852,6 +855,7 @@ profileMissionsButton?.addEventListener("click", () => showView(missionsView));
 profileClansButton?.addEventListener("click", () => showView(clansView));
 document.addEventListener("click", e => { if (!profileDropdown.contains(e.target) && !profileMenuButton.contains(e.target)) closeProfileDropdown(); });
 homeMissionsCard?.addEventListener("click", () => showView(missionsView));
+document.querySelector("#header-coins")?.addEventListener("click", () => showView(missionsView));
 homeSeriesCard?.addEventListener("click", () => showView(leagueView));
 homeLiveCard?.addEventListener("click", () => showView(liveView));
 weeklyTab?.addEventListener("click", showWeeklyTop);
@@ -860,7 +864,11 @@ clanWeeklyTab?.addEventListener("click", showClanWeeklyTop);
 clanMonthlyTab?.addEventListener("click", showClanMonthlyTop);
 liveTab5x5?.addEventListener("click", () => switchLiveFormat("5x5"));
 liveTab2x2?.addEventListener("click", () => switchLiveFormat("2x2"));
-liveContent?.addEventListener("click", e => { const scoreBtn = e.target.closest("button.live-score-btn"); if (scoreBtn) { openScoreForm(scoreBtn); return; } const btn = e.target.closest("button.live-faceit-btn"); if (!btn) return; createFaceitRoom(btn.dataset.matchId, btn); });
+liveContent?.addEventListener("click", e => {
+  const link = e.target.closest("[data-open-url]"); if (link) { openExternal(link.dataset.openUrl); return; }
+  const scoreBtn = e.target.closest("button.live-score-btn"); if (scoreBtn) { openScoreForm(scoreBtn); return; }
+  const roomBtn = e.target.closest("button.live-faceit-btn"); if (roomBtn) openFaceitRoomForm(roomBtn);
+});
 leagueTabs.forEach(b => b.addEventListener("click", () => showLeagueSection(b.dataset.leagueSection)));
 leagueNextButton?.addEventListener("click", () => showLeagueSection(leagueNextButton.dataset.target || "register"));
 leagueActionJoin?.addEventListener("click", () => showLeagueSection("register"));
