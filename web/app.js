@@ -874,3 +874,10 @@ function draw() {
 }
 window.addEventListener("resize", resize);
 resize(); draw(); load();
+
+// /start бот (кнопка для капитанов в форме создания команды)
+document.querySelector('#open-bot-start')?.addEventListener('click', () => {
+  const tg = window?.Telegram?.WebApp;
+  if (tg?.openTelegramLink) tg.openTelegramLink('https://t.me/HardPoint_bot?start=captain');
+  else window.open('https://t.me/HardPoint_bot?start=captain', '_blank');
+});
