@@ -2144,24 +2144,40 @@ def club_welcome_text(info: Dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def _active_promos(info: Dict[str, object]) -> List[str]:
+    today = datetime.now(SNAPSHOT_TZ).date().isoformat()
+    result: List[str] = []
+    for promo in info.get("promos", []) or []:
+        if isinstance(promo, dict):
+            text, until = _text(promo.get("text")), _text(promo.get("until"))
+            if until and until < today:
+                continue  # expired: hide automatically
+        else:
+            text = _text(promo)
+        if text:
+            result.append(text)
+    return result
+
+
 def club_prices_text(info: Dict[str, object]) -> str:
     sections: List[str] = []
-    for title_key, items_key, default_title in (
-        ("prices_title", "prices", "Почасовая игра"),
-        ("packages_title", "packages", "Пакеты"),
-        ("passes_title", "passes", "Абонементы"),
-    ):
-        items = _items(info, items_key)
+    promos = _active_promos(info)
+    if promos:
+        sections.append("<b>🔥 Акции</b>\n" + "\n".join(f"• {html.escape(p)}" for p in promos))
+    for section in info.get("price_sections", []) or []:
+        if not isinstance(section, dict):
+            continue
+        items = _items(section, "items")
         if not items:
             continue
-        title = html.escape(_text(info.get(title_key)) or default_title)
-        sections.append(f"<b>{title}</b>\n" + "\n".join(_price_line(item) for item in items))
-    promos = [html.escape(_text(p)) for p in info.get("promos", []) or [] if _text(p)]
-    if promos:
-        sections.append("<b>🔥 Акции</b>\n" + "\n".join(f"• {p}" for p in promos))
-    if not sections:
+        header = f"<b>{html.escape(_text(section.get('title')))}</b>"
+        note = _text(section.get("note"))
+        if note:
+            header += f" <i>({html.escape(note)})</i>"
+        sections.append(header + "\n" + "\n".join(_price_line(item) for item in items))
+    if not any(isinstance(x, dict) and _items(x, "items") for x in info.get("price_sections", []) or []):
         sections.append("Цены скоро появятся здесь. Пока уточняйте в клубе.")
-    return "💰 <b>Цены и абонементы</b>\n\n" + "\n\n".join(sections)
+    return "💰 <b>Цены</b>\n\n" + "\n\n".join(sections)
 
 
 def club_hours_text(info: Dict[str, object]) -> str:
