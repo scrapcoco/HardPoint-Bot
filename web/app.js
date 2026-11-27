@@ -36,12 +36,8 @@ const leagueXpNode = document.querySelector("#league-xp");
 const leagueNextTitle = document.querySelector("#league-next-title");
 const leagueNextNote = document.querySelector("#league-next-note");
 const leagueNextButton = document.querySelector("#league-next-button");
-const leagueActionJoin = document.querySelector("#league-action-join");
-const leagueActionCreate = document.querySelector("#league-action-create");
-const leagueActionTable = document.querySelector("#league-action-table");
 const leagueTabs = document.querySelectorAll(".league-tabs button");
 const leagueSections = document.querySelectorAll(".league-section");
-const leagueSeasonsNode = document.querySelector("#league-seasons");
 const leagueMyTeamNode = document.querySelector("#league-my-team");
 const leagueTeamsList = document.querySelector("#league-teams-list");
 const leagueStandingsTabs = document.querySelector("#league-standings-tabs");
@@ -65,7 +61,6 @@ const leagueCopyCodeButton = document.querySelector("#league-copy-code-button");
 const leagueShareCodeButton = document.querySelector("#league-share-code-button");
 const seriesFormatButtons = document.querySelectorAll("[data-series-format]");
 const faceitHubBanner = document.querySelector("#faceit-hub-banner");
-const faceitHubLink = document.querySelector("#faceit-hub-link");
 
 const ALL_VIEWS = [homeView, clubView, leagueView, liveView];
 state.activeView = homeView;
@@ -115,7 +110,7 @@ function showView(view, options = {}) {
 const NAV_GROUPS = [
   { key: "home", views: [[homeView, "Главная"]] },
   { key: "club", views: [[clubView, "Клуб"]] },
-  { key: "tournaments", views: [[leagueView, "Турнир", "overview"], [leagueView, "Регистрация", "register"], [liveView, "Сетка LIVE"], [leagueView, "Таблица", "table"], [leagueView, "Админ", "admin", "admin"]] },
+  { key: "tournaments", views: [[leagueView, "Турнир", "overview"], [leagueView, "Заявка", "register"], [liveView, "LIVE"], [leagueView, "Таблица", "table"], [leagueView, "Админ", "admin", "admin"]] },
 ];
 function groupOf(view) { return NAV_GROUPS.find(g => g.views.some(([v]) => v === view)) || NAV_GROUPS[0]; }
 function renderSubnav(group, active) {
@@ -189,6 +184,11 @@ function renderClubPrices() {
   list.innerHTML = (section.note ? `<p class="club-section-note">${escapeHtml(section.note)}</p>` : "") +
     section.items.map(item => `<div class="club-price-row"><span>${escapeHtml(item.title)}${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}</span><span class="club-price-values">${priceChips(item.unit ? `${item.price}/${item.unit === "час" ? "ч" : item.unit}` : item.price)}</span></div>`).join("");
 }
+function splitPromo(p) {
+  const i = p.indexOf(": ");
+  return i > 0 ? [p.slice(0, i), p.slice(i + 2)] : [p, "Подробнее в разделе Клуб"];
+}
+function rowIcon(paths) { return `<span class="home-row-icon"><svg viewBox="0 0 24 24">${paths}</svg></span>`; }
 function renderClub(data) {
   clubState.data = data;
   const st = clubStatusText(data.status);
@@ -201,10 +201,13 @@ function renderClub(data) {
   const badge = document.querySelector("#club-open-badge");
   badge.textContent = data.status?.known ? (data.status.openNow ? "● Открыто" : "Закрыто") : "";
   badge.classList.toggle("is-open", Boolean(data.status?.openNow));
-  document.querySelector("#club-promos").innerHTML = (data.promos || []).map(p => `<div class="club-promo">${escapeHtml(p)}</div>`).join("");
+  const clubPromos = document.querySelector("#club-promos");
+  clubPromos.innerHTML = (data.promos || []).map(p => { const [t, d] = splitPromo(p); return `<div class="home-row" data-color="peach"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(t)}</strong><small>${escapeHtml(d)}</small></span></div>`; }).join("");
+  clubPromos.hidden = !(data.promos || []).length;
+  document.querySelector("#club-promos-label").hidden = clubPromos.hidden;
   const homePromos = document.querySelector("#home-promos");
   if (homePromos) {
-    homePromos.innerHTML = (data.promos || []).map(p => `<button class="home-row" type="button" data-color="peach" data-go-club><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(p.includes(": ") ? p.slice(0, p.indexOf(": ")) : p)}</strong><small>${escapeHtml(p.includes(": ") ? p.slice(p.indexOf(": ") + 2) : "Подробнее в разделе Клуб")}</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`).join("");
+    homePromos.innerHTML = (data.promos || []).map(p => `<button class="home-row" type="button" data-color="peach" data-go-club><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(splitPromo(p)[0])}</strong><small>${escapeHtml(splitPromo(p)[1])}</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`).join("");
     homePromos.hidden = !(data.promos || []).length;
     document.querySelector("#home-promos-label").hidden = homePromos.hidden;
     homePromos.onclick = e => { if (e.target.closest("[data-go-club]")) showView(clubView); };
@@ -212,20 +215,19 @@ function renderClub(data) {
   renderClubPrices();
   document.querySelector("#club-hours").innerHTML = (data.hours || []).map(h => {
     const today = Array.isArray(h.weekdays) && h.weekdays.includes(data.today);
-    return `<div class="club-hours-row${today ? " is-today" : ""}"><span>${escapeHtml(h.days)}${today ? " · сегодня" : ""}</span><strong>${escapeHtml(h.time)}</strong></div>`;
-  }).join("") + (data.hoursNote ? `<p class="club-section-note">${escapeHtml(data.hoursNote)}</p>` : "");
-  const contacts = [];
-  if (data.address) contacts.push(`<span>📍 ${escapeHtml(data.address)}</span>`);
-  if (data.phone) contacts.push(`<a class="club-phone" href="tel:${escapeHtml(data.phone.replace(/\s+/g, ""))}">☎️ ${escapeHtml(data.phone)}</a>`);
-  document.querySelector("#club-contacts").innerHTML = contacts.join("");
-  const actions = [];
-  if (data.bookingUrl) actions.push(["📅 Забронировать место", data.bookingUrl, true]);
-  if (data.mapUrl) actions.push(["🗺 Как добраться", data.mapUrl, false]);
-  if (data.instagram) actions.push(["Instagram", data.instagram, false]);
-  if (data.discord) actions.push(["Discord", data.discord, false]);
-  if (data.website) actions.push(["Сайт клуба", data.website, false]);
-  document.querySelector("#club-actions").innerHTML = actions.map(([label, url, primary]) => `<button class="club-action${primary ? " is-primary" : ""}" type="button" data-club-link="${escapeHtml(url)}">${escapeHtml(label)}</button>`).join("");
+    return `<div class="home-row club-hours-row${today ? " is-today" : ""}"><span class="home-row-text"><strong>${escapeHtml(h.days)}</strong>${today ? "<small>сегодня</small>" : ""}</span><span class="club-hours-time">${escapeHtml(h.time)}</span></div>`;
+  }).join("") || `<div class="home-row"><span class="home-row-text"><strong>Уточняйте по телефону</strong></span></div>`;
+  const ARROW = `<span class="home-row-arrow" aria-hidden="true">›</span>`;
+  const rows = [];
+  if (data.bookingUrl) rows.push(["cal", "Забронировать место", "Выбрать время и компьютер", data.bookingUrl]);
+  if (data.address) rows.push(["pin", data.address, "Открыть на карте", data.mapUrl]);
+  if (data.phone) rows.push(["phone", data.phone, "Позвонить", `tel:${data.phone.replace(/\s+/g, "")}`]);
+  if (data.instagram) rows.push(["link", "Instagram", "@" + data.instagram.replace(/^.*instagram\.com\//, "").replace(/\/.*$/, ""), data.instagram]);
+  if (data.discord) rows.push(["link", "Discord", "Сообщество игроков", data.discord]);
+  if (data.website) rows.push(["link", "Сайт клуба", data.website.replace(/^https?:\/\//, ""), data.website]);
+  document.querySelector("#club-contacts").innerHTML = rows.map(([icon, title, sub, url]) => `<button class="home-row" type="button" data-color="violet" data-club-link="${escapeHtml(url || "")}">${rowIcon(CLUB_ICONS[icon])}<span class="home-row-text"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(sub)}</small></span>${url ? ARROW : ""}</button>`).join("");
 }
+const CLUB_ICONS = {"pin": "<path d=\"M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z\"/><circle cx=\"12\" cy=\"10\" r=\"2.3\"/>", "phone": "<path d=\"M6.5 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.2 6.2l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z\"/>", "cal": "<rect x=\"4\" y=\"5\" width=\"16\" height=\"15\" rx=\"2\"/><path d=\"M4 10h16M9 3v4M15 3v4\"/>", "link": "<path d=\"M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1\"/><path d=\"M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1\"/>"};
 async function loadClub() {
   try { renderClub(await api("/api/club")); }
   catch { const list = document.querySelector("#club-price-list"); if (list) list.innerHTML = `<p class="club-section-note">Не удалось загрузить цены</p>`; }
@@ -234,41 +236,39 @@ document.querySelector("#club-price-tabs")?.addEventListener("click", e => {
   const b = e.target.closest("[data-club-tab]"); if (!b) return;
   clubState.tab = Number(b.dataset.clubTab) || 0; renderClubPrices(); tg?.HapticFeedback?.selectionChanged();
 });
-document.querySelector("#club-actions")?.addEventListener("click", e => {
-  const b = e.target.closest("[data-club-link]"); if (b) openExternal(b.dataset.clubLink);
+document.querySelector("#club-contacts")?.addEventListener("click", e => {
+  const b = e.target.closest("[data-club-link]"); if (!b || !b.dataset.clubLink) return;
+  if (b.dataset.clubLink.startsWith("tel:")) window.location.href = b.dataset.clubLink; else openExternal(b.dataset.clubLink);
 });
 
 // ── LIVE BRACKET ──
 function roundLabel(rnd, total) {
   if (rnd === total) return "Финал";
-  if (rnd === total - 1) return "1/2";
-  if (rnd === total - 2) return "1/4";
-  if (rnd === total - 3) return "1/8";
-  return `Р${rnd}`;
+  if (rnd === total - 1) return "Полуфинал";
+  if (rnd === total - 2) return "1/4 финала";
+  if (rnd === total - 3) return "1/8 финала";
+  return `Раунд ${rnd}`;
 }
+// Phone-first: rounds go top to bottom, each match is one card.
 function renderLiveBracket(data) {
   state.liveViewer = data.viewer || { isAdmin: false, captainTeamIds: [] };
   state.faceitHubUrl = data.faceitHubUrl || "";
   if (!data.bracket) {
-    liveContent.innerHTML = `<div class="live-reg-state"><div class="live-reg-icon">📋</div><h3>Идёт регистрация</h3><p>Сетка будет сгенерирована в понедельник в 04:00</p><div class="live-reg-count">${data.registeredTeams || 0} команд зарегистрировано</div></div>`;
+    liveContent.innerHTML = `<p class="home-group-label">Сетка</p><div class="home-group"><div class="home-row"><span class="home-row-text"><strong>Идёт регистрация</strong><small>Сетка появится в понедельник в 04:00 · команд: ${data.registeredTeams || 0}</small></span></div></div>`;
     return;
   }
   const b = data.bracket;
   const rounds = b.rounds || {};
-  const roundNums = Object.keys(rounds).map(Number).sort((a, z) => a - z);
-  const total = roundNums.length;
-  let html = `<div class="live-stats-bar"><div><strong>${b.registeredTeams || 0}</strong><small>Команд</small></div><div><strong>${b.playedMatches || 0}/${b.totalMatches || 0}</strong><small>Матчей</small></div><div><strong>${total}</strong><small>Раундов</small></div></div>`;
-  html += `<div class="live-bracket-scroll"><div class="live-bracket">`;
-  roundNums.forEach(rnd => {
-    html += `<div class="live-round"><div class="live-round-label">${roundLabel(rnd, total)}</div>`;
-    (rounds[rnd] || []).forEach(m => { html += renderLiveMatch(m); });
-    html += `</div>`;
-  });
+  const nums = Object.keys(rounds).map(Number).sort((a, z) => a - z);
+  let html = "";
   if (b.status === "finished" && b.winnerId) {
-    const winnerName = findTeamName(rounds, b.winnerId);
-    html += `<div class="live-round"><div class="live-round-label">Чемпион</div><div class="live-champion"><div>🏆</div><div>${escapeHtml(winnerName || "??")}</div></div></div>`;
+    html += `<div class="live-champion-card"><span>🏆</span><div><small>Чемпион</small><strong>${escapeHtml(findTeamName(rounds, b.winnerId) || "??")}</strong></div></div>`;
   }
-  html += `</div></div>`;
+  html += `<div class="live-summary"><div><b>${b.registeredTeams || 0}</b><small>команд</small></div><div><b>${b.playedMatches || 0} из ${b.totalMatches || 0}</b><small>матчей сыграно</small></div><div><b>${nums.length}</b><small>раундов</small></div></div>`;
+  nums.forEach(rnd => {
+    html += `<p class="home-group-label">${roundLabel(rnd, nums.length)}</p>`;
+    (rounds[rnd] || []).forEach(m => { html += renderLiveMatch(m); });
+  });
   liveContent.innerHTML = html;
 }
 function findTeamName(rounds, winnerId) {
@@ -282,21 +282,16 @@ function findTeamName(rounds, winnerId) {
 }
 function renderLiveMatch(m) {
   const t1 = m.team1; const t2 = m.team2; const w = m.winner;
-  let barClass = "live-match-bar pending", barText = "Ожидается";
-  if (m.status === "played") { barClass = "live-match-bar done"; barText = "Завершён"; }
-  else if (m.status === "disputed") { barClass = "live-match-bar disputed"; barText = "Спор · решает админ"; }
-  else if (m.status === "bye") { barClass = "live-match-bar bye"; barText = "BYE"; }
-  const t1cls = w ? (w.id === t1?.id ? "winner" : "loser") : (t1 ? "" : "tbd");
-  const t2cls = w ? (w.id === t2?.id ? "winner" : "loser") : (t2 ? "" : "tbd");
-  const s1 = m.score1 != null ? m.score1 : "—";
-  const s2 = m.score2 != null ? m.score2 : "—";
+  const status = { played: ["done", "Завершён"], disputed: ["disputed", "Спор · решает админ"], bye: ["bye", "Проход без игры"] }[m.status] || ["pending", "Ожидается"];
+  const cls = t => w ? (w.id === t?.id ? "winner" : "loser") : (t ? "" : "tbd");
+  const score = v => (v != null ? v : "—");
   let faceitBtn = "";
   if (["pending", "disputed"].includes(m.status) && t1 && t2) {
     const canEdit = Boolean(myCaptainTeamInMatch(m) || state.liveViewer.isAdmin);
-    if (m.faceitMatchUrl) faceitBtn = `<button class="live-faceit-link" type="button" data-open-url="${escapeHtml(m.faceitMatchUrl)}">🔗 Открыть комнату FACEIT</button>`;
-    else if (canEdit) faceitBtn = `<button class="live-faceit-btn" type="button" data-match-id="${m.id}">🎮 Комната FACEIT</button>`;
+    if (m.faceitMatchUrl) faceitBtn = `<button class="live-btn is-ghost" type="button" data-open-url="${escapeHtml(m.faceitMatchUrl)}">Открыть комнату FACEIT ↗</button>`;
+    else if (canEdit) faceitBtn = `<button class="live-btn is-ghost live-faceit-btn" type="button" data-match-id="${m.id}">Добавить комнату FACEIT</button>`;
   }
-  return `<div class="live-match" data-match-id="${m.id}"><div class="${barClass}">${barText}</div><div class="live-team ${t1cls}"><span>${escapeHtml(t1?.name || "TBD")}</span><b>${s1}</b></div><div class="live-divider"></div><div class="live-team ${t2cls}"><span>${escapeHtml(t2?.name || "TBD")}</span><b>${s2}</b></div>${faceitBtn}${renderScoreControls(m)}</div>`;
+  return `<div class="live-match" data-match-id="${m.id}"><div class="live-match-status is-${status[0]}">${status[1]}</div><div class="live-team ${cls(t1)}"><span>${escapeHtml(t1?.name || "Ждём соперника")}</span><b>${score(m.score1)}</b></div><div class="live-team ${cls(t2)}"><span>${escapeHtml(t2?.name || "Ждём соперника")}</span><b>${score(m.score2)}</b></div>${renderScoreControls(m)}${faceitBtn ? `<div class="live-actions">${faceitBtn}</div>` : ""}</div>`;
 }
 // Score: both captains must report the same result; admin can set it directly.
 function myCaptainTeamInMatch(m) {
@@ -311,11 +306,10 @@ function renderScoreControls(m) {
   const admin = Boolean(state.liveViewer.isAdmin);
   if (!myTeam && !admin) return "";
   const reported = (m.reportedTeamIds || []);
-  let hint = "";
-  if (myTeam && reported.includes(myTeam) && m.status === "pending") hint = `<p class="live-score-hint">✓ Ваш счёт отправлен · ждём соперника</p>`;
-  const label = myTeam ? (reported.includes(myTeam) ? "✏️ Изменить счёт" : "📝 Внести счёт") : "🛡 Засчитать счёт (админ)";
-  const adminExtra = myTeam && admin ? `<button class="live-score-btn is-admin" type="button" data-score-match="${m.id}" data-as-admin="1">🛡 Как админ</button>` : "";
-  return `${hint}<div class="live-score-actions"><button class="live-score-btn" type="button" data-score-match="${m.id}" data-as-admin="${myTeam ? "" : "1"}">${label}</button>${adminExtra}</div>`;
+  const hint = myTeam && reported.includes(myTeam) && m.status === "pending" ? `<p class="live-score-hint">✓ Ваш счёт отправлен · ждём соперника</p>` : "";
+  const label = myTeam ? (reported.includes(myTeam) ? "Изменить счёт" : "Внести счёт") : "Засчитать счёт";
+  const adminExtra = myTeam && admin ? `<button class="live-btn is-ghost live-score-btn" type="button" data-score-match="${m.id}" data-as-admin="1">Как админ</button>` : "";
+  return `${hint}<div class="live-actions"><button class="live-btn live-score-btn" type="button" data-score-match="${m.id}" data-as-admin="${myTeam ? "" : "1"}">${label}</button>${adminExtra}</div>`;
 }
 function openScoreForm(btn) {
   const card = btn.closest(".live-match");
@@ -355,8 +349,8 @@ async function loadLiveBracket() {
 }
 function switchLiveFormat(fmt) {
   state.liveFmt = fmt;
-  liveTab5x5.classList.toggle("is-active", fmt === "5x5");
-  liveTab2x2.classList.toggle("is-active", fmt === "2x2");
+  liveTab5x5.classList.toggle("is-current", fmt === "5x5");
+  liveTab2x2.classList.toggle("is-current", fmt === "2x2");
   loadLiveBracket();
 }
 // FACEIT room: created by hand in the Hub, then the link is saved so both teams see it.
@@ -385,7 +379,7 @@ function renderLeague(data) {
   if (leagueXpNode) leagueXpNode.textContent = `${Number(user.xp || 0)} XP`;
   if (leagueRegisterFaceit) leagueRegisterFaceit.value = user.faceitNickname || "";
   document.body.classList.toggle("has-league-admin", Boolean(user.isAdmin));
-  if (faceitHubBanner) { faceitHubBanner.hidden = !user.faceitHubUrl; if (user.faceitHubUrl && faceitHubLink) faceitHubLink.href = user.faceitHubUrl; }
+  if (faceitHubBanner) { faceitHubBanner.hidden = !user.faceitHubUrl; faceitHubBanner.dataset.url = user.faceitHubUrl || ""; }
   state.myLeagueTeamIds = (state.league.myTeams || []).filter(t => t.status === "active").map(t => Number(t.id));
   renderLeagueNextStep(user, state.league.myTeams || []);
   renderLeagueSeasons(state.league.seasons || []);
@@ -419,47 +413,64 @@ function openSeriesRegistration(format) { selectSeriesFormat(format); showLeague
 function leagueStatusLabel(s) {
   return { registration: "Набор", active: "Идёт", finished: "Завершён", pending: "На проверке", rejected: "Отклонена", played: "Сыгран" }[s] || s || "—";
 }
+// Format rows show the live season status ("Набор", "Идёт") next to the format facts.
 function renderLeagueSeasons(seasons) {
-  if (!leagueSeasonsNode) return;
-  if (!seasons.length) { leagueSeasonsNode.innerHTML = "<span><strong>Скоро</strong></span>"; return; }
-  leagueSeasonsNode.innerHTML = seasons.map(s => `<span><strong>${escapeHtml(s.formatTitle || s.gameTitle)}</strong><small>${escapeHtml(leagueStatusLabel(s.status))}</small></span>`).join("");
+  const facts = { "5x5": "5 игроков · приз 8 ч игры", "2x2": "2 игрока · приз 4 ч игры" };
+  document.querySelectorAll("[data-format-sub]").forEach(node => {
+    const season = seasons.find(x => x.format === node.dataset.formatSub);
+    node.textContent = `${season ? leagueStatusLabel(season.status) + " · " : ""}${facts[node.dataset.formatSub]}`;
+  });
 }
 function renderLeagueMyTeam(teams) {
   if (!leagueMyTeamNode) return;
-  if (!teams.length) { leagueMyTeamNode.innerHTML = "<p class=\"panel-note\">Нет команды.</p>"; return; }
+  if (!teams.length) {
+    leagueMyTeamNode.innerHTML = `<button class="home-row" type="button" data-color="peach" data-go-sub="register"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="home-row-text"><strong>Пока без команды</strong><small>Вступи по коду или создай свою</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`;
+    return;
+  }
   leagueMyTeamNode.innerHTML = teams.map(team => {
-    const full = (team.members?.length || 0) >= Number(team.maxMembers || 99);
-    return `<article class="league-row league-team-row"><div><strong>${escapeHtml(team.name)}</strong><span>${escapeHtml(team.formatTitle || team.gameTitle)} · ${escapeHtml(leagueStatusLabel(team.status))} · ${team.members?.length || 0}/${team.maxMembers || "?"}</span></div><button class="league-invite-button" type="button" data-team-id="${team.id}" ${full ? "disabled" : ""}>${full ? "Заполнено" : "Пригласить"}</button></article>`;
+    const count = team.members?.length || 0;
+    const full = count >= Number(team.maxMembers || 99);
+    const action = full ? `<span class="home-row-badge">Состав полный</span>` : `<span class="home-row-action">Пригласить</span>`;
+    const tag = full ? "div" : "button";
+    return `<${tag} class="home-row" ${full ? "" : `type="button" data-team-id="${team.id}"`} data-color="peach"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(team.name)}</strong><small>${escapeHtml(team.formatTitle || team.gameTitle)} · ${escapeHtml(leagueStatusLabel(team.status))} · игроков ${count} из ${team.maxMembers || "?"}</small></span>${action}</${tag}>`;
   }).join("");
 }
+// Teams of the format picked in the Таблица switch.
 function renderLeagueTeams(teams) {
   if (!leagueTeamsList) return;
-  if (!teams.length) { leagueTeamsList.innerHTML = "<p class=\"panel-note\">Команд нет.</p>"; return; }
-  leagueTeamsList.innerHTML = teams.map(t => `<article class="league-row"><div><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(t.formatTitle || t.gameTitle)} · ${escapeHtml(leagueStatusLabel(t.status))}</span></div><small>${t.members?.length || 0}</small></article>`).join("");
+  const fmt = (state.league?.standingTabs || []).find(t => t.key === state.leagueStandingTab)?.season?.format;
+  const list = fmt ? teams.filter(t => t.format === fmt) : teams;
+  const label = document.querySelector("#league-teams-label");
+  if (label) label.textContent = `Команды · ${list.length}`;
+  leagueTeamsList.innerHTML = list.length
+    ? list.map(t => `<div class="home-row" data-color="pink"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(t.name)}</strong><small>${escapeHtml(leagueStatusLabel(t.status))} · игроков ${t.members?.length || 0} из ${t.maxMembers || "?"}</small></span></div>`).join("")
+    : `<div class="home-row"><span class="home-row-text"><strong>Пока нет команд</strong><small>Стань первым — подай заявку во вкладке «Заявка»</small></span></div>`;
 }
 function renderLeagueStandings() {
   const tabs = state.league?.standingTabs || [];
   if (!tabs.length || !leagueStandingsTabs) return;
   if (!state.leagueStandingTab || !tabs.some(t => t.key === state.leagueStandingTab)) state.leagueStandingTab = state.league?.defaultStandingTab || tabs[0].key;
-  leagueStandingsTabs.innerHTML = tabs.map(t => `<button type="button" data-standing-tab="${escapeHtml(t.key)}" class="${t.key === state.leagueStandingTab ? "is-current" : ""}">${escapeHtml(t.title)}</button>`).join("");
+  leagueStandingsTabs.innerHTML = tabs.map(t => `<button type="button" data-standing-tab="${escapeHtml(t.key)}" class="${t.key === state.leagueStandingTab ? "is-current" : ""}">${escapeHtml(t.season?.formatTitle || t.title)}</button>`).join("");
   const active = tabs.find(t => t.key === state.leagueStandingTab) || tabs[0];
   const season = active.season;
-  if (!season) { if (leagueStandingsMeta) leagueStandingsMeta.innerHTML = ""; if (leagueStandingsList) leagueStandingsList.innerHTML = ""; return; }
-  if (leagueStandingsMeta) leagueStandingsMeta.innerHTML = `<strong>${escapeHtml(season.name || active.title)}</strong><span>${escapeHtml(leagueStatusLabel(season.status))} · команд: ${season.teamsRegistered || 0}</span>`;
   const items = active.standings || [];
-  if (!leagueStandingsList) return;
-  if (!items.length || season.status === "registration") { leagueStandingsList.innerHTML = `<li>🎮 Зарегистрировано: ${season.teamsRegistered || 0}</li>`; return; }
-  leagueStandingsList.innerHTML = items.map(item => {
-    const trend = item.trend === "new" ? "NEW" : item.trend === "0" ? "—" : Number(item.trend || 0) > 0 ? `▲${item.trend}` : `▼${Math.abs(Number(item.trend))}`;
-    return `<li class="${item.isCurrentUserTeam ? "is-current-team" : ""}"><strong>${item.place}. ${escapeHtml(item.name)}<small>${trend} · И ${item.played} В ${item.wins} П ${item.losses}</small></strong><span>${item.points}</span></li>`;
-  }).join("");
+  if (leagueStandingsMeta) leagueStandingsMeta.textContent = season ? `Рейтинг · ${leagueStatusLabel(season.status)}` : "Рейтинг";
+  if (!season || !items.length || season.status === "registration") {
+    leagueStandingsList.innerHTML = `<div class="home-row"><span class="home-row-text"><strong>Рейтинг появится после первых матчей</strong><small>Сейчас идёт набор · команд: ${season?.teamsRegistered || 0}</small></span></div>`;
+  } else {
+    leagueStandingsList.innerHTML = items.map(item => {
+      const trend = item.trend === "new" ? "новая" : item.trend === "0" ? "" : Number(item.trend || 0) > 0 ? `▲${item.trend}` : `▼${Math.abs(Number(item.trend))}`;
+      return `<div class="home-row standing-row${item.isCurrentUserTeam ? " is-mine" : ""}"><span class="standing-place${item.place <= 3 ? " is-top" : ""}">${item.place}</span><span class="home-row-text"><strong>${escapeHtml(item.name)}</strong><small>Игр ${item.played} · побед ${item.wins} · поражений ${item.losses}${trend ? " · " + trend : ""}</small></span><span class="standing-points"><b>${item.points}</b><small>очк.</small></span></div>`;
+    }).join("");
+  }
+  renderLeagueTeams(state.league?.teams || []);
 }
 function renderLeaguePending(items, isAdmin) {
   if (!leagueAdminPanel) return;
   leagueAdminPanel.hidden = !isAdmin; if (leagueAdminEmpty) leagueAdminEmpty.hidden = isAdmin;
   if (!isAdmin || !leaguePendingList) return;
-  if (!items.length) { leaguePendingList.innerHTML = "<p class=\"panel-note\">Нет заявок.</p>"; return; }
-  leaguePendingList.innerHTML = items.map(t => `<article class="league-row league-admin-row"><div><strong>${escapeHtml(t.name)}</strong><span>${escapeHtml(t.formatTitle || t.gameTitle)} · ${escapeHtml(t.captainName || "-")}</span></div><div class="league-admin-actions"><button type="button" data-team-id="${t.id}" data-status="active">Принять</button><button type="button" data-team-id="${t.id}" data-status="rejected">Отклонить</button></div></article>`).join("");
+  if (!items.length) { leaguePendingList.innerHTML = `<div class="home-row"><span class="home-row-text"><strong>Новых заявок нет</strong><small>Когда капитан подаст заявку, она появится здесь</small></span></div>`; return; }
+  leaguePendingList.innerHTML = items.map(t => `<div class="home-row admin-row"><span class="home-row-text"><strong>${escapeHtml(t.name)}</strong><small>${escapeHtml(t.formatTitle || t.gameTitle)} · капитан ${escapeHtml(t.captainName || "-")}</small></span><span class="admin-actions"><button type="button" class="live-btn" data-team-id="${t.id}" data-status="active">Принять</button><button type="button" class="live-btn is-ghost" data-team-id="${t.id}" data-status="rejected">Отклонить</button></span></div>`).join("");
 }
 // ── REGISTRATION WIZARD: FACEIT → join or create → done, one screen at a time ──
 const WIZARD_STEPS = { faceit: [1, "FACEIT аккаунт"], choice: [2, "Как будешь играть?"], join: [3, "Вступить по коду"], create: [3, "Новая команда"], done: [3, "Готово"] };
@@ -618,9 +629,6 @@ liveContent?.addEventListener("click", e => {
 });
 leagueTabs.forEach(b => b.addEventListener("click", () => showLeagueSection(b.dataset.leagueSection)));
 leagueNextButton?.addEventListener("click", () => showLeagueSection(leagueNextButton.dataset.target || "register"));
-leagueActionJoin?.addEventListener("click", () => showLeagueSection("register"));
-leagueActionCreate?.addEventListener("click", () => showLeagueSection("register"));
-leagueActionTable?.addEventListener("click", () => showLeagueSection("table"));
 seriesFormatButtons.forEach(b => b.addEventListener("click", () => openSeriesRegistration(b.dataset.seriesFormat)));
 leagueRegisterButton?.addEventListener("click", leagueRegister);
 wizardBackButton?.addEventListener("click", wizardBack);
@@ -633,8 +641,15 @@ document.querySelector("#wizard-share-button")?.addEventListener("click", () => 
 leagueJoinCodeInput?.addEventListener("input", () => { leagueJoinCodeInput.value = leagueJoinCodeInput.value.toUpperCase(); });
 leagueJoinButton?.addEventListener("click", leagueJoinTeam);
 leagueCreateTeamButton?.addEventListener("click", leagueCreateTeam);
-leagueStandingsTabs?.addEventListener("click", e => { const b = e.target.closest("button[data-standing-tab]"); if (!b) return; state.leagueStandingTab = b.dataset.standingTab; renderLeagueStandings(); });
-leagueMyTeamNode?.addEventListener("click", e => { const b = e.target.closest("button[data-team-id]"); if (!b) return; openLeagueInvite(Number(b.dataset.teamId)); });
+leagueStandingsTabs?.addEventListener("click", e => { const b = e.target.closest("button[data-standing-tab]"); if (!b) return; state.leagueStandingTab = b.dataset.standingTab; renderLeagueStandings(); tg?.HapticFeedback?.selectionChanged(); });
+leagueMyTeamNode?.addEventListener("click", e => { const b = e.target.closest("button[data-team-id]"); if (b) openLeagueInvite(Number(b.dataset.teamId)); });
+// Rows that jump to another tournament sub-tab (Сетка LIVE, Таблица, Заявка)
+leagueView?.addEventListener("click", e => {
+  const b = e.target.closest("[data-go-sub]"); if (!b) return;
+  if (b.dataset.goSub === "live") showView(liveView); else showLeagueSection(b.dataset.goSub);
+  tg?.HapticFeedback?.selectionChanged();
+});
+faceitHubBanner?.addEventListener("click", () => openExternal(faceitHubBanner.dataset.url));
 leagueInviteClose?.addEventListener("click", closeLeagueInvite);
 leagueInviteSheet?.addEventListener("click", e => { if (e.target === leagueInviteSheet) closeLeagueInvite(); });
 leagueCopyCodeButton?.addEventListener("click", copyLeagueInviteCode);

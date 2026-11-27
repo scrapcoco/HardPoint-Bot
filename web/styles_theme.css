@@ -176,3 +176,78 @@ h1,h2,h3,.qmb-title,.club-head h2{font-family:Oswald,Montserrat,sans-serif;lette
 .wizard-secondary{width:100%;min-height:2.9rem;border:1px solid var(--line);border-radius:.9rem;background:var(--panel-strong);color:var(--ink);font:inherit;font-size:.92rem;font-weight:800;cursor:pointer}
 .league-panel:has(#league-register-section.is-active) .series-season-hero{display:none!important}
 .wizard-choice{margin-top:.7rem}
+
+/* ── STRUCTURE: same row pattern everywhere, sub-tabs share the width ── */
+.subnav-btn{flex:1 1 auto;text-align:center}
+.home-row[hidden]{display:none}
+.home-row:disabled{cursor:default;opacity:1}
+.home-row-action{flex:0 0 auto;padding:.4rem .7rem;border-radius:999px;background:var(--cream);color:var(--ink-dark);font-size:.74rem;font-weight:800}
+.home-row-badge{flex:0 0 auto;color:var(--muted);font-size:.72rem;font-weight:700}
+.league-next-card{display:grid!important;gap:.6rem}
+.league-next-card h2{font-size:1.1rem!important}
+.league-next-card .panel-note{margin:0}
+#league-overview-section .home-group-label:first-of-type{margin-top:1rem}
+.home-row-text small{white-space:normal!important;line-height:1.35}
+div.home-row{cursor:default}
+.league-next-card .panel-note,.league-next-card #league-next-note{margin:0!important;padding:0!important}
+/* Таблица: format switch, ranking rows, team rows */
+.league-panel:not(:has(#league-overview-section.is-active)) .series-season-hero{display:none!important}
+.segment{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.25rem;padding:.25rem;border:1px solid var(--line);border-radius:.9rem;background:var(--panel)}
+.segment button{min-height:2.3rem;border:0;border-radius:.7rem;background:transparent;color:var(--soft);font:inherit;font-size:.85rem;font-weight:800;cursor:pointer}
+.segment button.is-current{background:var(--accent);color:var(--ink-dark)}
+.standing-place{display:grid;place-items:center;flex:0 0 auto;width:2rem;height:2rem;border-radius:.6rem;background:var(--panel-strong);font-weight:900}
+.standing-place.is-top{background:var(--pink);color:var(--ink-dark)}
+.standing-points{display:grid;justify-items:end;flex:0 0 auto}
+.standing-points b{font-family:Oswald,Montserrat,sans-serif;font-size:1.2rem}
+.standing-points small{color:var(--muted);font-size:.65rem;font-weight:700}
+.standing-row.is-mine{background:rgba(255,79,216,.08)}
+/* LIVE: vertical, one card per match */
+#live-view > .segment{margin-top:.2rem}
+.live-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-top:.7rem}
+.live-summary div{display:grid;justify-items:center;gap:.1rem;padding:.6rem .3rem;border:1px solid var(--line);border-radius:.9rem;background:var(--panel);text-align:center}
+.live-summary b{font-family:Oswald,Montserrat,sans-serif;font-size:1.1rem}
+.live-summary small{color:var(--muted);font-size:.66rem;font-weight:700}
+#live-content .live-match{margin-top:.5rem;overflow:hidden;border-radius:1rem!important;padding:0!important}
+.live-match-status{padding:.45rem .85rem;color:var(--muted);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--line)}
+.live-match-status.is-done{color:var(--cyan)}
+.live-match-status.is-disputed{color:#FF5C8A;background:rgba(255,92,138,.08)}
+#live-content .live-team{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.7rem .85rem;background:transparent!important}
+#live-content .live-team + .live-team{border-top:1px solid var(--line)}
+#live-content .live-team span{font-size:.92rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#live-content .live-team b{font-family:Oswald,Montserrat,sans-serif;font-size:1.15rem}
+#live-content .live-team.winner span,#live-content .live-team.winner b{color:var(--cyan)}
+#live-content .live-team.loser{opacity:.55}
+#live-content .live-team.tbd span{color:var(--muted);font-weight:600}
+.live-actions{display:flex;flex-wrap:wrap;gap:.4rem;padding:0 .85rem .75rem}
+.live-actions:first-of-type{padding-top:.1rem}
+.live-btn{flex:1 1 8rem;min-height:2.6rem;border:0;border-radius:.8rem;background:var(--cream);color:var(--ink-dark);font:inherit;font-size:.84rem;font-weight:800;cursor:pointer}
+.live-btn.is-ghost{background:var(--panel-strong);color:var(--ink);border:1px solid var(--line)}
+#live-content .live-score-hint{margin:0;padding:.1rem .85rem .5rem;color:var(--cyan);font-size:.74rem;font-weight:700}
+#live-content .live-score-form{padding:.75rem .85rem;border-top:1px solid var(--line)}
+.live-champion-card{display:flex;align-items:center;gap:.8rem;margin-top:.7rem;padding:.9rem;border:1px solid rgba(246,169,122,.5);border-radius:1rem;background:rgba(246,169,122,.1)}
+.live-champion-card span{font-size:1.8rem}
+.live-champion-card small{display:block;color:var(--peach);font-size:.7rem;font-weight:800;text-transform:uppercase}
+.live-champion-card strong{font-size:1.1rem}
+@media (max-width:360px){.subnav-btn{padding:.5rem .55rem;font-size:.74rem}}
+#live-content .live-btn.live-score-btn{background:var(--cream)!important;color:var(--ink-dark)!important;border:0!important}
+#live-content .live-btn.is-ghost.live-score-btn{background:var(--panel-strong)!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+#live-content .live-team span{flex:1 1 auto;min-width:0;max-width:none!important}
+#live-content .live-team b{flex:0 0 auto}
+/* Club: same row groups as Home */
+.club-status-card{margin-top:.2rem!important;border-left:4px solid var(--peach)!important}
+.club-status-card h2{margin:0;font-size:1.25rem}
+.home-row[data-color="violet"] .home-row-icon{color:var(--lavender,#B9A6E8);background:rgba(185,166,232,.14)}
+.club-prices-group{padding:.7rem .75rem .75rem}
+.club-prices-group .club-tabs{margin:0 -.75rem .6rem!important;padding:0 .75rem!important}
+.club-hours-row{padding:.75rem .85rem!important;border-radius:0!important;background:transparent!important}
+.club-hours-row .home-row-text small{color:var(--peach)!important;font-weight:800}
+.club-hours-time{flex:0 0 auto;font-family:Oswald,Montserrat,sans-serif;font-size:1rem;color:var(--ink)}
+.club-hours-row.is-today .club-hours-time,.club-hours-row.is-today strong{color:var(--peach)!important}
+.club-login-group{padding:.75rem .85rem}
+.club-login-group .panel-note{margin:.5rem 0 0}
+.club-login-group .login-form{display:flex;gap:.5rem}
+.club-login-group .login-form input{flex:1;min-width:0}
+.home-row-text strong{overflow-wrap:anywhere}
+.admin-row{flex-wrap:wrap}
+.admin-actions{display:flex;gap:.4rem;width:100%}
+#league-admin-panel[hidden],#league-admin-empty[hidden]{display:none}

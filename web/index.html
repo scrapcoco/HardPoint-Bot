@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/styles_club.css?v=52">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/styles_theme.css?v=5">
+    <link rel="stylesheet" href="/styles_theme.css?v=12">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -94,22 +94,23 @@
                 <p id="league-next-note" class="panel-note">Укажи FACEIT nickname, вступи по коду или создай команду.</p>
               </div>
               <button id="league-next-button" type="button">Начать</button>
-              <div hidden>
-                <button id="league-action-join" type="button">Вступить</button>
-                <button id="league-action-create" type="button">Создать</button>
-                <button id="league-action-table" type="button">Таблица</button>
-              </div>
             </article>
-            <article id="faceit-hub-banner" class="league-card faceit-hub-card" hidden>
-              <div><p class="label">Платформа</p><h3>🎮 Матчи через FACEIT</h3><p class="panel-note">Все матчи турнира проходят в HardPoint Hub с античитом.</p></div>
-              <a id="faceit-hub-link" href="#" target="_blank" class="faceit-hub-button">Открыть Hub</a>
-            </article>
-            <div class="series-format-grid">
-              <button class="series-format-card series-format-card-5" type="button" data-series-format="5x5"><span class="format-prize">8ч 🎮</span><small>CS2 · 5×5 · Регистрация открыта</small><strong>Full Squad<br>Challenge</strong><em>👥 5 игроков · BO1</em><i><b style="width:38%"></b></i><span class="format-action">🎯 Зарегистрироваться</span></button>
-              <button class="series-format-card series-format-card-2" type="button" data-series-format="2x2"><span class="format-prize">4ч 🎮</span><small>CS2 · 2×2 · Регистрация открыта</small><strong>Duo<br>Strike</strong><em>👥 2 игрока · BO1</em><i><b style="width:25%"></b></i><span class="format-action">🎯 Зарегистрироваться</span></button>
+
+            <p class="home-group-label">Форматы</p>
+            <div class="home-group">
+              <button class="home-row" type="button" data-color="pink" data-series-format="5x5"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg></span><span class="home-row-text"><strong>Full Squad Challenge · 5×5</strong><small data-format-sub="5x5">5 игроков · BO1 · приз 8 ч игры</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>
+              <button class="home-row" type="button" data-color="pink" data-series-format="2x2"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="8.5" r="3"/><circle cx="16" cy="8.5" r="3"/><path d="M2.5 19.5a5.5 5.5 0 0 1 11 0M10.5 19.5a5.5 5.5 0 0 1 11 0"/></svg></span><span class="home-row-text"><strong>Duo Strike · 2×2</strong><small data-format-sub="2x2">2 игрока · BO1 · приз 4 ч игры</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>
             </div>
-            <article class="league-card"><p class="label">Моя команда</p><div id="league-my-team" class="league-list compact"></div></article>
-            <article class="league-card"><p class="label">Открытые серии</p><div id="league-seasons" class="league-pill-list"></div></article>
+
+            <p class="home-group-label">Моя команда</p>
+            <div id="league-my-team" class="home-group"></div>
+
+            <p class="home-group-label">Турнир</p>
+            <div class="home-group">
+              <button class="home-row" type="button" data-color="cyan" data-go-sub="live"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M4 5h5v5H4zM4 14h5v5H4zM9 7.5h3v9H9M12 12h3"/><path d="M15 9.5h5v5h-5z"/></svg></span><span class="home-row-text"><strong>Сетка LIVE</strong><small>Матчи, счёт, комнаты FACEIT</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>
+              <button class="home-row" type="button" data-color="cyan" data-go-sub="table"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></span><span class="home-row-text"><strong>Таблица</strong><small>Рейтинг сезона и все команды</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>
+              <button id="faceit-hub-banner" class="home-row" type="button" data-color="cyan" hidden><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><span class="home-row-text"><strong>HardPoint Hub на FACEIT</strong><small>Здесь проходят все матчи турнира</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>
+            </div>
           </div>
           <!-- REGISTRATION: one step per screen -->
           <div id="league-register-section" class="league-section">
@@ -184,12 +185,18 @@
             </article>
           </div>
           <div id="league-table-section" class="league-section">
-            <article class="league-card"><div class="section-title compact-title"><p class="label">Команды</p><h2>Заявки и составы</h2></div><div id="league-teams-list" class="league-list"></div></article>
-            <article class="league-card"><div class="section-title compact-title"><p class="label">Таблица</p><h2>Рейтинг сезона</h2></div><div id="league-standings-tabs" class="league-standings-tabs"></div><div id="league-standings-meta" class="league-standings-meta"></div><ol id="league-standings-list" class="top-list"></ol></article>
+            <div id="league-standings-tabs" class="segment"></div>
+            <p id="league-standings-meta" class="home-group-label">Рейтинг</p>
+            <div id="league-standings-list" class="home-group"></div>
+            <p id="league-teams-label" class="home-group-label">Команды</p>
+            <div id="league-teams-list" class="home-group"></div>
           </div>
           <div id="league-admin-section" class="league-section">
-            <article id="league-admin-panel" class="league-card" hidden><div class="section-title compact-title"><p class="label">Админ</p><h2>Заявки команд</h2></div><div id="league-pending-list" class="league-list"></div></article>
-            <article id="league-admin-empty" class="league-card"><p class="label">Админ</p><p class="panel-note">Этот раздел виден только администратору.</p></article>
+            <div id="league-admin-panel" hidden>
+              <p class="home-group-label">Заявки команд на проверке</p>
+              <div id="league-pending-list" class="home-group"></div>
+            </div>
+            <div id="league-admin-empty" class="home-group"><div class="home-row"><span class="home-row-text"><strong>Раздел для администратора</strong><small>Здесь принимают заявки команд</small></span></div></div>
           </div>
           <div id="league-invite-sheet" class="league-invite-sheet" hidden>
             <article class="league-invite-card"><button id="league-invite-close" class="sheet-close" type="button" aria-label="Закрыть">×</button><p class="label">Команда</p><h2>Пригласи игрока</h2><span>Код команды</span><strong id="league-invite-code">HL-XXXXXX</strong><button id="league-copy-code-button" type="button">Скопировать код</button><button id="league-share-code-button" type="button">Поделиться в Telegram</button></article>
@@ -198,40 +205,42 @@
       </div>
 
       <div id="live-view" class="app-view">
-        <section class="live-panel">
-          <div class="live-header"><div><p class="label"><span class="live-dot"></span> Лайв</p><h2>Турнирная сетка</h2></div><div class="live-format-tabs"><button id="live-tab-5x5" class="live-tab is-active" type="button">5×5</button><button id="live-tab-2x2" class="live-tab" type="button">2×2</button></div></div>
-          <div id="live-content"><div class="live-loading">Загрузка...</div></div>
-        </section>
+        <div class="segment" role="tablist"><button id="live-tab-5x5" class="is-current" type="button">5×5</button><button id="live-tab-2x2" type="button">2×2</button></div>
+        <div id="live-content"><div class="live-loading">Загрузка...</div></div>
       </div>
 
       <!-- CLUB VIEW -->
       <div id="club-view" class="app-view">
-        <section class="club-panel">
+        <section class="club-panel club-status-card">
           <div class="club-head">
-            <div><p class="label">Клуб</p><h2 id="club-name">HardPoint</h2><p id="club-tagline" class="club-tagline"></p></div>
+            <div><h2 id="club-name">HardPoint</h2><p id="club-tagline" class="club-tagline"></p></div>
             <span id="club-open-badge" class="club-badge"></span>
           </div>
-          <div id="club-promos" class="club-promos"></div>
         </section>
-        <section class="club-panel">
-          <p class="label">Цены</p>
+
+        <p id="club-promos-label" class="home-group-label" hidden>Акции</p>
+        <div id="club-promos" class="home-group" hidden></div>
+
+        <p class="home-group-label">Цены</p>
+        <div class="home-group club-prices-group">
           <div id="club-price-tabs" class="club-tabs" role="tablist"></div>
           <div id="club-price-list" class="club-price-list"><div class="live-loading">Загрузка...</div></div>
-        </section>
-        <section class="club-panel">
-          <p class="label">Часы работы</p>
-          <div id="club-hours" class="club-hours"></div>
-          <div id="club-contacts" class="club-contacts"></div>
-          <div id="club-actions" class="club-actions"></div>
-        </section>
-        <section class="profile-panel">
-          <p class="label">Мой логин в клубе</p>
+        </div>
+
+        <p class="home-group-label">Часы работы</p>
+        <div id="club-hours" class="home-group"></div>
+
+        <p class="home-group-label">Контакты</p>
+        <div id="club-contacts" class="home-group"></div>
+
+        <p class="home-group-label">Мой логин в клубе</p>
+        <div class="home-group club-login-group">
           <div class="login-form">
             <input id="club-login" type="text" maxlength="40" autocomplete="off" placeholder="Введите логин" aria-label="Логин в клубе">
             <button id="save-login-button" type="button">Сохранить</button>
           </div>
           <p class="panel-note">Логин, под которым вы играете в HardPoint.</p>
-        </section>
+        </div>
       </div>
 
       <nav class="bottom-nav" aria-label="Разделы">
@@ -241,6 +250,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=57"></script>
+    <script src="/app.js?v=63"></script>
   </body>
 </html>
