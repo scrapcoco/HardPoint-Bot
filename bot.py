@@ -338,6 +338,18 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (tournament_id) REFERENCES tournaments(id)
             );
+
+            CREATE TABLE IF NOT EXISTS tournament_match_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                match_id INTEGER NOT NULL,
+                team_id INTEGER NOT NULL,
+                reported_by INTEGER NOT NULL,
+                score1 INTEGER NOT NULL,
+                score2 INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE (match_id, team_id),
+                FOREIGN KEY (match_id) REFERENCES tournament_bracket_matches(id)
+            );
             """
         )
         ensure_user_profile_columns(connection)
@@ -345,6 +357,7 @@ def init_db() -> None:
         ensure_league_member_columns(connection)
         ensure_league_user_faceit_column(connection)
         ensure_tournament_indexes(connection)
+        ensure_bracket_faceit_column(connection)
         ensure_weekly_period_start(connection)
         ensure_default_league_seasons(connection)
         connection.commit()
@@ -353,6 +366,12 @@ def init_db() -> None:
 def ensure_tournament_indexes(connection: sqlite3.Connection) -> None:
     connection.execute("CREATE INDEX IF NOT EXISTS idx_tournament_season ON tournaments (season_id)")
     connection.execute("CREATE INDEX IF NOT EXISTS idx_bracket_tournament ON tournament_bracket_matches (tournament_id, round)")
+
+
+def ensure_bracket_faceit_column(connection: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(tournament_bracket_matches)").fetchall()}
+    if "faceit_match_url" not in columns:
+        connection.execute("ALTER TABLE tournament_bracket_matches ADD COLUMN faceit_match_url TEXT NOT NULL DEFAULT ''")
 
 
 def ensure_league_user_faceit_column(connection: sqlite3.Connection) -> None:
@@ -1727,6 +1746,13 @@ def serialize_bracket(connection: sqlite3.Connection, tournament_id: int) -> Dic
             "score2": match["score2"],
             "status": match["status"],
             "scheduledAt": match["scheduled_at"],
+            "faceitMatchUrl": match["faceit_match_url"] or "",
+            "reportedTeamIds": [
+                int(r["team_id"])
+                for r in connection.execute(
+                    "SELECT team_id FROM tournament_match_reports WHERE match_id = ?", (int(match["id"]),)
+                ).fetchall()
+            ],
         })
     total = len(matches)
     played = sum(1 for m in matches if str(m["status"]) in {"played", "bye"})
@@ -3041,7 +3067,7 @@ async def api_bracket(request: web.Request) -> web.Response:
             (int(tournament["id"]),),
         ).fetchone()["c"]
         bracket["registeredTeams"] = int(reg_count)
-        return web.json_response({"bracket": bracket})
+        return web.json_response({"bracket": bracket, "viewer": bracket_viewer(request, connection), "faceitHubUrl": FACEIT_HUB_URL})
 
 
 async def api_bracket_register(request: web.Request) -> web.Response:
@@ -3075,39 +3101,131 @@ async def api_bracket_register(request: web.Request) -> web.Response:
         })
 
 
+def bracket_viewer(request: web.Request, connection: sqlite3.Connection) -> Dict[str, object]:
+    """Who is looking at the bracket: admin flag and teams they captain (empty if not from Telegram)."""
+    try:
+        user = user_from_init_data(request)
+    except web.HTTPException:
+        return {"isAdmin": False, "captainTeamIds": []}
+    rows = connection.execute(
+        """
+        SELECT t.id FROM league_teams t
+        JOIN league_users u ON u.id = t.captain_id
+        WHERE u.tg_id = ?
+        """,
+        (int(user["id"]),),
+    ).fetchall()
+    return {"isAdmin": is_league_admin(connection, int(user["id"])), "captainTeamIds": [int(r["id"]) for r in rows]}
+
+
+def _apply_bracket_result(connection: sqlite3.Connection, match: sqlite3.Row, score1: int, score2: int) -> None:
+    winner_id = int(match["team1_id"]) if score1 > score2 else int(match["team2_id"])
+    connection.execute(
+        "UPDATE tournament_bracket_matches SET score1 = ?, score2 = ?, winner_id = ?, status = 'played' WHERE id = ?",
+        (score1, score2, winner_id, int(match["id"])),
+    )
+    advance_winner(connection, int(match["tournament_id"]), int(match["id"]))
+
+
+def _parse_score(value: object) -> int:
+    try:
+        score = int(value)
+    except (TypeError, ValueError):
+        raise web.HTTPBadRequest(reason="Score must be a number")
+    if score < 0 or score > 99:
+        raise web.HTTPBadRequest(reason="Score out of range")
+    return score
+
+
 async def api_bracket_result(request: web.Request) -> web.Response:
+    """Captains report the score (team1:team2 order). It counts only when both captains
+    report the same score; different scores mark the match as disputed for an admin.
+    Admins can set the final score directly (also to resolve disputes)."""
     user = user_from_init_data(request)
     try:
         payload = await request.json()
     except json.JSONDecodeError as error:
-        raise web.HTTPBadRequest(reason="\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u0434\u0430\u043d\u043d\u044b\u0445") from error
+        raise web.HTTPBadRequest(reason="Bad JSON") from error
     match_id = int(payload.get("matchId") or 0)
-    score1 = int(payload.get("score1") or 0)
-    score2 = int(payload.get("score2") or 0)
+    score1 = _parse_score(payload.get("score1"))
+    score2 = _parse_score(payload.get("score2"))
+    if score1 == score2:
+        return web.json_response({"ok": False, "message": "Ничьей быть не может — укажите победителя."}, status=400)
     with closing(db()) as connection:
         league_user = ensure_league_user(connection, user)
-        match = connection.execute(
-            "SELECT * FROM tournament_bracket_matches WHERE id = ?", (match_id,)
-        ).fetchone()
+        match = connection.execute("SELECT * FROM tournament_bracket_matches WHERE id = ?", (match_id,)).fetchone()
         if not match:
-            raise web.HTTPBadRequest(reason="\u041c\u0430\u0442\u0447 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d")
-        if str(match["status"]) not in {"pending", "disputed"}:
-            raise web.HTTPBadRequest(reason="\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0443\u0436\u0435 \u0432\u043d\u0435\u0441\u0451\u043d")
+            return web.json_response({"ok": False, "message": "Матч не найден."}, status=404)
+        if str(match["status"]) not in {"pending", "disputed"} or not match["team1_id"] or not match["team2_id"]:
+            return web.json_response({"ok": False, "message": "Для этого матча счёт внести нельзя."}, status=400)
+        tournament_id = int(match["tournament_id"])
+        admin = is_league_admin(connection, int(user["id"]))
         captain_team = connection.execute(
             "SELECT * FROM league_teams WHERE captain_id = ? AND id IN (?, ?)",
-            (int(league_user["id"]), match["team1_id"] or 0, match["team2_id"] or 0),
+            (int(league_user["id"]), int(match["team1_id"]), int(match["team2_id"])),
+        ).fetchone()
+        if admin and (not captain_team or payload.get("asAdmin")):
+            _apply_bracket_result(connection, match, score1, score2)
+            connection.commit()
+            return web.json_response({"ok": True, "message": "Счёт засчитан администратором.", "bracket": serialize_bracket(connection, tournament_id)})
+        if not captain_team:
+            return web.json_response({"ok": False, "message": "Счёт вносят только капитаны этих команд."}, status=403)
+        connection.execute(
+            """
+            INSERT INTO tournament_match_reports (match_id, team_id, reported_by, score1, score2, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(match_id, team_id) DO UPDATE SET
+                reported_by = excluded.reported_by, score1 = excluded.score1,
+                score2 = excluded.score2, created_at = excluded.created_at
+            """,
+            (match_id, int(captain_team["id"]), int(league_user["id"]), score1, score2, utc_now()),
+        )
+        other_team_id = int(match["team2_id"]) if int(captain_team["id"]) == int(match["team1_id"]) else int(match["team1_id"])
+        other = connection.execute(
+            "SELECT * FROM tournament_match_reports WHERE match_id = ? AND team_id = ?", (match_id, other_team_id)
+        ).fetchone()
+        if not other:
+            message = "Счёт отправлен. Ждём подтверждения капитана соперника."
+        elif int(other["score1"]) == score1 and int(other["score2"]) == score2:
+            _apply_bracket_result(connection, match, score1, score2)
+            message = "Оба капитана подтвердили — счёт засчитан!"
+        else:
+            connection.execute("UPDATE tournament_bracket_matches SET status = 'disputed' WHERE id = ?", (match_id,))
+            message = "Счёт не совпадает с версией соперника. Матч отмечен как спорный — решит администратор."
+        connection.commit()
+        bracket = serialize_bracket(connection, tournament_id)
+    return web.json_response({"ok": True, "message": message, "bracket": bracket})
+
+
+FACEIT_ROOM_RE = re.compile(r"^https://(www\.)?faceit\.com/[A-Za-z0-9_./\-]+$")
+
+
+async def api_bracket_faceit_room(request: web.Request) -> web.Response:
+    """Captain or admin saves the FACEIT room link for a bracket match, so both teams see it.
+    (FACEIT's public API cannot create hub matches, so the room is created in the Hub by hand.)"""
+    user = user_from_init_data(request)
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError as error:
+        raise web.HTTPBadRequest(reason="Bad JSON") from error
+    match_id = int(payload.get("matchId") or 0)
+    url = str(payload.get("url") or "").strip().split("?")[0]
+    if url and not FACEIT_ROOM_RE.match(url):
+        return web.json_response({"ok": False, "message": "Нужна ссылка вида https://www.faceit.com/…/room/…"}, status=400)
+    with closing(db()) as connection:
+        league_user = ensure_league_user(connection, user)
+        match = connection.execute("SELECT * FROM tournament_bracket_matches WHERE id = ?", (match_id,)).fetchone()
+        if not match or not match["team1_id"] or not match["team2_id"]:
+            return web.json_response({"ok": False, "message": "Матч не найден."}, status=404)
+        captain_team = connection.execute(
+            "SELECT id FROM league_teams WHERE captain_id = ? AND id IN (?, ?)",
+            (int(league_user["id"]), int(match["team1_id"]), int(match["team2_id"])),
         ).fetchone()
         if not captain_team and not is_league_admin(connection, int(user["id"])):
-            raise web.HTTPForbidden(reason="\u0422\u043e\u043b\u044c\u043a\u043e \u043a\u0430\u043f\u0438\u0442\u0430\u043d \u0438\u043b\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440 \u043c\u043e\u0436\u0435\u0442 \u0432\u043d\u0435\u0441\u0442\u0438 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442")
-        winner_id = int(match["team1_id"]) if score1 > score2 else int(match["team2_id"])
-        connection.execute(
-            "UPDATE tournament_bracket_matches SET score1 = ?, score2 = ?, winner_id = ?, status = 'played' WHERE id = ?",
-            (score1, score2, winner_id, match_id),
-        )
-        advance_winner(connection, int(match["tournament_id"]), match_id)
+            return web.json_response({"ok": False, "message": "Ссылку добавляют капитаны этих команд или админ."}, status=403)
+        connection.execute("UPDATE tournament_bracket_matches SET faceit_match_url = ? WHERE id = ?", (url, match_id))
         connection.commit()
-        bracket = serialize_bracket(connection, int(match["tournament_id"]))
-        return web.json_response({"ok": True, "bracket": bracket})
+    return web.json_response({"ok": True, "faceitMatchUrl": url, "message": "Ссылка на комнату сохранена." if url else "Ссылка удалена."})
 
 
 async def api_faceit_verify(request: web.Request) -> web.Response:
@@ -3132,7 +3250,8 @@ async def api_faceit_verify(request: web.Request) -> web.Response:
 
 
 async def web_index(request: web.Request) -> web.FileResponse:
-    return web.FileResponse(WEB_DIR / "index.html")
+    # Always revalidate the page so new app.js?v=... links reach users right after a deploy.
+    return web.FileResponse(WEB_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 async def start_web_server(application: Application) -> web.AppRunner:
@@ -3165,6 +3284,7 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_get("/api/bracket", api_bracket)
     web_app.router.add_post("/api/bracket/register", api_bracket_register)
     web_app.router.add_post("/api/bracket/result", api_bracket_result)
+    web_app.router.add_post("/api/bracket/faceit-room", api_bracket_faceit_room)
     web_app.router.add_get("/api/faceit/verify", api_faceit_verify)
     web_app.router.add_static("/assets", WEB_DIR / "assets")
     web_app.router.add_static("/", WEB_DIR)
