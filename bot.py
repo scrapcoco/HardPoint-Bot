@@ -1600,6 +1600,7 @@ async def api_league(request: web.Request) -> web.Response:
     user = user_from_init_data(request)
     with closing(db()) as connection:
         data = serialize_league(connection, user)
+        data["nextBracketAt"] = utc_iso(next_bracket_generation())
         connection.commit()
         return web.json_response(data)
 

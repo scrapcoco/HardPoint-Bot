@@ -14,8 +14,6 @@ const state = {
 };
 
 const homeUsernameNode = document.querySelector("#home-username");
-const homeSeriesCard = document.querySelector("#home-series-card");
-const homeLiveCard = document.querySelector("#home-live-card");
 const statusNode = document.querySelector("#status");
 const clubLoginInput = document.querySelector("#club-login");
 const saveLoginButton = document.querySelector("#save-login-button");
@@ -24,7 +22,6 @@ const leagueView = document.querySelector("#league-view");
 const liveView = document.querySelector("#live-view");
 const clubView = document.querySelector("#club-view");
 const navClub = document.querySelector("#nav-club");
-const homeClubCard = document.querySelector("#home-club-card");
 const liveContent = document.querySelector("#live-content");
 const liveTab5x5 = document.querySelector("#live-tab-5x5");
 const liveTab2x2 = document.querySelector("#live-tab-2x2");
@@ -196,13 +193,44 @@ function teamIcon(team) {
     : `<span class="home-row-icon">${TEAM_ICON}</span>`;
 }
 function rowIcon(paths) { return `<span class="home-row-icon"><svg viewBox="0 0 24 24">${paths}</svg></span>`; }
+// ── HOME: club right now, prices, promos, tournament countdown ──
+function renderHomeClub(data) {
+  const st = data.status || {};
+  const pill = document.querySelector("#home-open-pill");
+  pill.textContent = !st.known ? "Клуб HardPoint" : st.openNow ? `Открыто до ${st.closesAt}` : st.opensAt ? `Откроемся в ${st.opensAt}` : "Сейчас закрыто";
+  pill.classList.toggle("is-open", Boolean(st.openNow));
+  pill.classList.toggle("is-closed", Boolean(st.known && !st.openNow));
+  document.querySelector("#home-today").textContent = st.today ? `Сегодня ${st.today}` : "";
+  document.querySelector("#home-address").textContent = data.address || "";
+  const route = document.querySelector("#home-route");
+  route.hidden = !data.mapUrl; route.onclick = () => openExternal(data.mapUrl);
+  const call = document.querySelector("#home-call");
+  call.hidden = !data.phone; call.onclick = () => { window.location.href = `tel:${String(data.phone).replace(/\s+/g, "")}`; };
+  const hourly = (data.priceSections || [])[0];
+  document.querySelector("#home-prices").innerHTML = (hourly?.items || []).slice(0, 3).map(item =>
+    `<div class="home-price"><small>${escapeHtml(item.title)}</small><strong>${escapeHtml(String(item.price).replace(/\s*zł/, ""))}<em> zł/ч</em></strong></div>`).join("");
+  const promos = data.promos || [];
+  document.querySelector("#home-promos-block").hidden = !promos.length;
+  document.querySelector("#home-promos").innerHTML = promos.map((p, i) => {
+    const [title, text] = splitPromo(p);
+    return `<article class="home-promo${i % 2 ? " is-alt" : ""}"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></article>`;
+  }).join("");
+}
+function renderHomeSeries() {
+  const nextAt = state.nextBracketAt ? new Date(state.nextBracketAt) : null;
+  const node = document.querySelector("#home-countdown");
+  if (nextAt && !Number.isNaN(nextAt.getTime())) {
+    const mins = Math.max(0, Math.round((nextAt - Date.now()) / 60000));
+    const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+    node.textContent = d ? `${d} д ${h} ч` : h ? `${h} ч ${m} мин` : `${m} мин`;
+  }
+  document.querySelector("#home-step-title").textContent = leagueNextTitle?.textContent || "Зарегистрируйся";
+  const btn = document.querySelector("#home-step-button");
+  btn.textContent = leagueNextButton?.hidden ? "Открыть турниры" : (leagueNextButton?.textContent || "Открыть");
+}
 function renderClub(data) {
   clubState.data = data;
-  const st = clubStatusText(data.status);
-  const dot = document.querySelector("#home-club-status");
-  dot?.classList.toggle("is-open", st.open);
-  document.querySelector("#home-club-title").textContent = st.title;
-  document.querySelector("#home-club-sub").textContent = st.sub;
+  renderHomeClub(data);
   document.querySelector("#club-name").textContent = data.name || "HardPoint";
   document.querySelector("#club-tagline").textContent = data.tagline || "";
   const badge = document.querySelector("#club-open-badge");
@@ -212,13 +240,6 @@ function renderClub(data) {
   clubPromos.innerHTML = (data.promos || []).map(p => { const [t, d] = splitPromo(p); return `<div class="home-row" data-color="peach"><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(t)}</strong><small>${escapeHtml(d)}</small></span></div>`; }).join("");
   clubPromos.hidden = !(data.promos || []).length;
   document.querySelector("#club-promos-label").hidden = clubPromos.hidden;
-  const homePromos = document.querySelector("#home-promos");
-  if (homePromos) {
-    homePromos.innerHTML = (data.promos || []).map(p => `<button class="home-row" type="button" data-color="peach" data-go-club><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(splitPromo(p)[0])}</strong><small>${escapeHtml(splitPromo(p)[1])}</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`).join("");
-    homePromos.hidden = !(data.promos || []).length;
-    document.querySelector("#home-promos-label").hidden = homePromos.hidden;
-    homePromos.onclick = e => { if (e.target.closest("[data-go-club]")) showView(clubView); };
-  }
   renderClubPrices();
   document.querySelector("#club-hours").innerHTML = (data.hours || []).map(h => {
     const today = Array.isArray(h.weekdays) && h.weekdays.includes(data.today);
@@ -384,6 +405,7 @@ function openFaceitRoomForm(btn) {
 // ── RENDER ──
 function renderLeague(data) {
   state.league = data || {};
+  if (state.league.nextBracketAt) state.nextBracketAt = state.league.nextBracketAt;
   const user = state.league.user || {};
   if (leagueRoleNode) leagueRoleNode.textContent = user.isAdmin ? "Админ" : user.role === "captain" ? "Капитан" : "Игрок";
   if (leagueXpNode) leagueXpNode.textContent = `${Number(user.xp || 0)} XP`;
@@ -398,6 +420,7 @@ function renderLeague(data) {
   renderLeagueStandings();
   renderLeaguePending(state.league.pendingTeams || [], Boolean(user.isAdmin));
   selectSeriesFormat(state.selectedLeagueFormat);
+  renderHomeSeries();
 }
 // Captain puts a ready team into this week's bracket.
 async function enterWeeklyTournament(format) {
@@ -712,9 +735,18 @@ async function load() {
 saveLoginButton?.addEventListener("click", async () => { saveLoginButton.disabled = true; try { const r = await postApi("/api/club-login", { clubLogin: clubLoginInput.value.trim() }); clubLoginInput.value = r.clubLogin || ""; setStatus("Логин сохранён."); } catch { setStatus("Не удалось."); } finally { saveLoginButton.disabled = false; } });
 
 document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.addEventListener("click", () => { openGroup(b.dataset.group); tg?.HapticFeedback?.selectionChanged(); }));
-homeClubCard?.addEventListener("click", () => showView(clubView));
-homeSeriesCard?.addEventListener("click", () => showView(leagueView));
-homeLiveCard?.addEventListener("click", () => showView(liveView));
+homeView?.addEventListener("click", e => {
+  const b = e.target.closest("[data-go]"); if (!b) return;
+  if (b.dataset.go === "club") showView(clubView);
+  else if (b.dataset.go === "live") showView(liveView);
+  else { showView(leagueView); showLeagueSection("overview"); }
+  tg?.HapticFeedback?.selectionChanged();
+});
+// Home "Твой шаг" does the same as the button in Турниры.
+document.querySelector("#home-step-button")?.addEventListener("click", () => {
+  showView(leagueView);
+  if (leagueNextButton && !leagueNextButton.hidden) leagueNextButton.click(); else showLeagueSection("overview");
+});
 liveTab5x5?.addEventListener("click", () => switchLiveFormat("5x5"));
 liveTab2x2?.addEventListener("click", () => switchLiveFormat("2x2"));
 liveContent?.addEventListener("click", e => {
