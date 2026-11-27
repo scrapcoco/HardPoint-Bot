@@ -49,7 +49,7 @@ HardPoint Series — еженедельный турнир по CS2 для по�
 - Telegram бот — раздел "Админ" в Series
 - FACEIT Hub — панель организатора: `organizer.faceit.com`
 - Группа капитанов в Telegram
-- Сервер (при необходимости): `ssh ubuntu@138.2.133.215`
+- Сервер (при необходимости): `ssh ubuntu@<IP-сервера>` (адрес — у администратора)
 
 ---
 
@@ -269,7 +269,7 @@ HardPoint Series — еженедельный турнир по CS2 для по�
 ### Бот не сгенерировал сетку
 Проверить на сервере:
 ```bash
-ssh -i ~/Documents/telegram/.oracle-ssh-key ubuntu@138.2.133.215
+ssh -i <путь-к-ключу> ubuntu@<IP-сервера>
 sudo journalctl -u hardpoint-bot -n 50 --no-pager
 ```
 Если бот упал — перезапустить:
@@ -314,8 +314,8 @@ sudo systemctl restart hardpoint-bot
 
 | Ресурс | Данные |
 |---|---|
-| Сервер | `ubuntu@138.2.133.215` |
-| SSH ключ | `~/Documents/telegram/.oracle-ssh-key` |
+| Сервер | `ubuntu@<IP-сервера>` (не публикуется) |
+| SSH ключ | хранится только у администратора |
 | Mini App URL | https://bot.hardpointcyber.club |
 | FACEIT Hub | https://www.faceit.com/ru/hub/3a0d15ee-9120-4d80-908f-7f0b9e1fdf3f |
 | Панель организатора | https://organizer.faceit.com |
