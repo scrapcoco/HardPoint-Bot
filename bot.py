@@ -3345,6 +3345,8 @@ async def main() -> None:
         level=os.getenv("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    # httpx logs every request URL at INFO, and Telegram URLs contain the bot token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     init_db()
     application = build_application()
     web_runner: Optional[web.AppRunner] = None
