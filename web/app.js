@@ -49,6 +49,9 @@ const clansView = document.querySelector("#clans-view");
 const leagueView = document.querySelector("#league-view");
 const liveView = document.querySelector("#live-view");
 const esportView = document.querySelector("#esport-view");
+const clubView = document.querySelector("#club-view");
+const navClub = document.querySelector("#nav-club");
+const homeClubCard = document.querySelector("#home-club-card");
 const liveContent = document.querySelector("#live-content");
 const liveTab5x5 = document.querySelector("#live-tab-5x5");
 const liveTab2x2 = document.querySelector("#live-tab-2x2");
@@ -170,7 +173,7 @@ const teamFinalsPanel = document.querySelector("#team-finals-panel");
 const namaIconButton = document.querySelector("#nama-icon-button");
 const namaProfilePanel = document.querySelector("#nama-profile-panel");
 
-const ALL_VIEWS = [homeView, profileView, invitesView, missionsView, clansView, leagueView, liveView, esportView];
+const ALL_VIEWS = [homeView, profileView, invitesView, missionsView, clansView, leagueView, liveView, esportView, clubView];
 state.activeView = homeView;
 
 function setStatus(msg) { statusNode.textContent = msg || ""; }
@@ -206,6 +209,7 @@ function showView(view, options = {}) {
   navSeries.classList.toggle("is-current", view === leagueView);
   navLive.classList.toggle("is-current", view === liveView);
   navEsport.classList.toggle("is-current", view === esportView);
+  navClub?.classList.toggle("is-current", view === clubView);
   backButton.classList.toggle("is-visible", view !== homeView);
   closeProfileDropdown();
   if (view === liveView) loadLiveBracket();
@@ -232,6 +236,94 @@ function toggleProfileDropdown() {
   profileDropdown.setAttribute("aria-hidden", String(!open));
   profileMenuButton.setAttribute("aria-expanded", String(open));
 }
+
+// Bot buttons open the app with ?view=series / ?view=live etc.
+function initialViewFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const view = String(params.get("view") || tg?.initDataUnsafe?.start_param || "").toLowerCase();
+  const map = { club: clubView, prices: clubView, series: leagueView, league: leagueView, live: liveView, clans: clansView, missions: missionsView, profile: profileView, invites: invitesView, esport: esportView };
+  return map[view] || null;
+}
+function showInitialView() {
+  const view = initialViewFromLocation();
+  if (view) showView(view, { skipHistory: true });
+}
+
+// ── CLUB (prices, hours, contacts) ──
+const clubState = { data: null, tab: 0 };
+function openExternal(url) {
+  if (!url) return;
+  if (/^https:\/\/t\.me\//.test(url) && tg?.openTelegramLink) tg.openTelegramLink(url);
+  else if (tg?.openLink) tg.openLink(url);
+  else window.open(url, "_blank", "noopener");
+}
+function clubStatusText(status) {
+  if (!status || !status.known) return { open: false, title: "Клуб HardPoint", sub: "Цены, часы работы, адрес" };
+  if (status.openNow) return { open: true, title: `Открыто до ${status.closesAt}`, sub: "Цены, часы работы, адрес" };
+  if (status.opensAt) return { open: false, title: `Откроемся в ${status.opensAt}`, sub: `Сегодня ${status.today}` };
+  return { open: false, title: "Сейчас закрыто", sub: status.today ? `Сегодня ${status.today}` : "Цены, часы работы, адрес" };
+}
+function priceChips(price) {
+  // "STD 45 zł · VIP 50 zł" -> two chips; plain "17 zł" -> one chip
+  return String(price || "").split("·").map(p => p.trim()).filter(Boolean).map((part, i) => {
+    const m = part.match(/^(STD|VIP)\s+(.+)$/i);
+    const main = i === 0 ? " is-main" : "";
+    return m ? `<span class="club-price${main}"><b>${escapeHtml(m[1].toUpperCase())}</b>${escapeHtml(m[2])}</span>`
+             : `<span class="club-price${main}">${escapeHtml(part)}</span>`;
+  }).join("") || `<span class="club-price">уточняйте</span>`;
+}
+function renderClubPrices() {
+  const sections = clubState.data?.priceSections || [];
+  const tabs = document.querySelector("#club-price-tabs");
+  const list = document.querySelector("#club-price-list");
+  if (!sections.length) { tabs.innerHTML = ""; list.innerHTML = `<p class="club-section-note">Цены скоро появятся</p>`; return; }
+  if (clubState.tab >= sections.length) clubState.tab = 0;
+  tabs.innerHTML = sections.map((s, i) => `<button class="club-tab${i === clubState.tab ? " is-active" : ""}" type="button" role="tab" data-club-tab="${i}">${escapeHtml(s.title)}</button>`).join("");
+  const section = sections[clubState.tab];
+  list.innerHTML = (section.note ? `<p class="club-section-note">${escapeHtml(section.note)}</p>` : "") +
+    section.items.map(item => `<div class="club-price-row"><span>${escapeHtml(item.title)}${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}</span><span class="club-price-values">${priceChips(item.unit ? `${item.price}/${item.unit === "час" ? "ч" : item.unit}` : item.price)}</span></div>`).join("");
+}
+function renderClub(data) {
+  clubState.data = data;
+  const st = clubStatusText(data.status);
+  const dot = document.querySelector("#home-club-status");
+  dot?.classList.toggle("is-open", st.open);
+  document.querySelector("#home-club-title").textContent = st.title;
+  document.querySelector("#home-club-sub").textContent = st.sub;
+  document.querySelector("#club-name").textContent = data.name || "HardPoint";
+  document.querySelector("#club-tagline").textContent = data.tagline || "";
+  const badge = document.querySelector("#club-open-badge");
+  badge.textContent = data.status?.known ? (data.status.openNow ? "● Открыто" : "Закрыто") : "";
+  badge.classList.toggle("is-open", Boolean(data.status?.openNow));
+  document.querySelector("#club-promos").innerHTML = (data.promos || []).map(p => `<div class="club-promo">${escapeHtml(p)}</div>`).join("");
+  renderClubPrices();
+  document.querySelector("#club-hours").innerHTML = (data.hours || []).map(h => {
+    const today = Array.isArray(h.weekdays) && h.weekdays.includes(data.today);
+    return `<div class="club-hours-row${today ? " is-today" : ""}"><span>${escapeHtml(h.days)}${today ? " · сегодня" : ""}</span><strong>${escapeHtml(h.time)}</strong></div>`;
+  }).join("") + (data.hoursNote ? `<p class="club-section-note">${escapeHtml(data.hoursNote)}</p>` : "");
+  const contacts = [];
+  if (data.address) contacts.push(`<span>📍 ${escapeHtml(data.address)}</span>`);
+  if (data.phone) contacts.push(`<a class="club-phone" href="tel:${escapeHtml(data.phone.replace(/\s+/g, ""))}">☎️ ${escapeHtml(data.phone)}</a>`);
+  document.querySelector("#club-contacts").innerHTML = contacts.join("");
+  const actions = [];
+  if (data.bookingUrl) actions.push(["📅 Забронировать место", data.bookingUrl, true]);
+  if (data.mapUrl) actions.push(["🗺 Как добраться", data.mapUrl, false]);
+  if (data.instagram) actions.push(["Instagram", data.instagram, false]);
+  if (data.discord) actions.push(["Discord", data.discord, false]);
+  if (data.website) actions.push(["Сайт клуба", data.website, false]);
+  document.querySelector("#club-actions").innerHTML = actions.map(([label, url, primary]) => `<button class="club-action${primary ? " is-primary" : ""}" type="button" data-club-link="${escapeHtml(url)}">${escapeHtml(label)}</button>`).join("");
+}
+async function loadClub() {
+  try { renderClub(await api("/api/club")); }
+  catch { const list = document.querySelector("#club-price-list"); if (list) list.innerHTML = `<p class="club-section-note">Не удалось загрузить цены</p>`; }
+}
+document.querySelector("#club-price-tabs")?.addEventListener("click", e => {
+  const b = e.target.closest("[data-club-tab]"); if (!b) return;
+  clubState.tab = Number(b.dataset.clubTab) || 0; renderClubPrices(); tg?.HapticFeedback?.selectionChanged();
+});
+document.querySelector("#club-actions")?.addEventListener("click", e => {
+  const b = e.target.closest("[data-club-link]"); if (b) openExternal(b.dataset.clubLink);
+});
 
 // ── LIVE BRACKET ──
 function roundLabel(rnd, total) {
@@ -625,6 +717,7 @@ async function leagueJoinTeam() {
 
 // ── LOAD ──
 async function load() {
+  loadClub();
   try {
     tg?.ready(); tg?.expand();
     const [me, weeklyTop, allTimeTop, clans, league] = await Promise.all([
@@ -642,13 +735,14 @@ async function load() {
     if (homeUsernameNode) homeUsernameNode.textContent = displayName;
     if (homeAvatarButton) homeAvatarButton.textContent = initialsFor(me.user.name || me.user.username || "HP");
     renderRank(me.user); renderMissions(me.missions || {}); renderClans(clans); renderLeague(league);
-    showWeeklyTop();
+    showWeeklyTop(); showInitialView();
   } catch {
     if (inviteLinkNode) inviteLinkNode.textContent = "Откройте из Telegram.";
     if (homeUsernameNode) homeUsernameNode.textContent = "@hardpoint";
     if (homeAvatarButton) homeAvatarButton.textContent = "HP";
     renderRank({ progress: {}, rank: {} }); renderMissions({}); renderClans({}); renderLeague({});
     setStatus("Откройте из Telegram.");
+    showInitialView();
   }
 }
 async function refreshClans() { const c = await api("/api/clans"); renderClans(c); return c; }
@@ -697,6 +791,8 @@ shareButton?.addEventListener("click", () => { if (!state.inviteLink) return; tg
 saveLoginButton?.addEventListener("click", async () => { saveLoginButton.disabled = true; try { const r = await postApi("/api/club-login", { clubLogin: clubLoginInput.value.trim() }); clubLoginInput.value = r.clubLogin || ""; setStatus("Логин сохранён."); } catch { setStatus("Не удалось."); } finally { saveLoginButton.disabled = false; } });
 
 navHome.addEventListener("click", () => showView(homeView));
+navClub?.addEventListener("click", () => showView(clubView));
+homeClubCard?.addEventListener("click", () => showView(clubView));
 navSeries.addEventListener("click", () => showView(leagueView));
 navLive.addEventListener("click", () => showView(liveView));
 navEsport.addEventListener("click", () => showView(esportView));
@@ -778,3 +874,10 @@ function draw() {
 }
 window.addEventListener("resize", resize);
 resize(); draw(); load();
+
+// /start бот (кнопка для капитанов в форме создания команды)
+document.querySelector('#open-bot-start')?.addEventListener('click', () => {
+  const tg = window?.Telegram?.WebApp;
+  if (tg?.openTelegramLink) tg.openTelegramLink('https://t.me/HardPoint_bot?start=captain');
+  else window.open('https://t.me/HardPoint_bot?start=captain', '_blank');
+});
