@@ -15,6 +15,7 @@ const state = {
   liveRefreshTimer: null,
   myLeagueTeamIds: [],
   liveViewer: { isAdmin: false, captainTeamIds: [] },
+  lastInGroup: {},
   myTgId: null,
 };
 
@@ -62,8 +63,8 @@ const profileClansButton = document.querySelector("#profile-clans-button");
 const backButton = document.querySelector("#back-button");
 const navHome = document.querySelector("#nav-home");
 const navSeries = document.querySelector("#nav-series");
-const navLive = document.querySelector("#nav-live");
-const navEsport = document.querySelector("#nav-esport");
+const navProfile = document.querySelector("#nav-profile");
+const subnav = document.querySelector("#subnav");
 const rankTitleNode = document.querySelector("#rank-title");
 const rankScoreNode = document.querySelector("#rank-score");
 const rankMeterFillNode = document.querySelector("#rank-meter-fill");
@@ -206,15 +207,35 @@ function showView(view, options = {}) {
   if (state.activeView && state.activeView !== view && !options.skipHistory) state.previousView = state.activeView;
   state.activeView = view;
   ALL_VIEWS.forEach(v => v && v.classList.toggle("is-active", v === view));
-  navHome.classList.toggle("is-current", view === homeView);
-  navSeries.classList.toggle("is-current", view === leagueView);
-  navLive.classList.toggle("is-current", view === liveView);
-  navEsport.classList.toggle("is-current", view === esportView);
-  navClub?.classList.toggle("is-current", view === clubView);
-  backButton.classList.toggle("is-visible", view !== homeView);
+  const group = groupOf(view);
+  state.lastInGroup[group.key] = view;
+  document.body.dataset.section = group.key;
+  document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.classList.toggle("is-current", b.dataset.group === group.key));
+  renderSubnav(group, view);
+  backButton.classList.remove("is-visible");
+  window.scrollTo({ top: 0 });
   closeProfileDropdown();
   if (view === liveView) loadLiveBracket();
   else stopLiveRefresh();
+}
+// ── NAV GROUPS: 4 bottom tabs, sub-tabs inside Турниры and Профиль ──
+const NAV_GROUPS = [
+  { key: "home", views: [[homeView, "Главная"]] },
+  { key: "club", views: [[clubView, "Клуб"]] },
+  { key: "tournaments", views: [[leagueView, "Series"], [liveView, "Сетка LIVE"], [esportView, "Команды HP"]] },
+  { key: "profile", views: [[profileView, "Профиль"], [missionsView, "Миссии"], [clansView, "Кланы"], [invitesView, "Пригласить"]] },
+];
+function groupOf(view) { return NAV_GROUPS.find(g => g.views.some(([v]) => v === view)) || NAV_GROUPS[0]; }
+function renderSubnav(group, active) {
+  if (!subnav) return;
+  if (group.views.length < 2) { subnav.hidden = true; subnav.innerHTML = ""; return; }
+  subnav.hidden = false;
+  subnav.innerHTML = group.views.map(([v, label], i) => `<button type="button" class="subnav-btn${v === active ? " is-current" : ""}" data-subview="${i}">${label}</button>`).join("");
+  subnav.onclick = e => { const b = e.target.closest("[data-subview]"); if (b) { showView(group.views[Number(b.dataset.subview)][0]); tg?.HapticFeedback?.selectionChanged(); } };
+}
+function openGroup(key) {
+  const group = NAV_GROUPS.find(g => g.key === key);
+  showView(state.lastInGroup[key] || group.views[0][0]);
 }
 function goBack() {
   const target = state.previousView && state.previousView !== state.activeView ? state.previousView : homeView;
@@ -839,12 +860,8 @@ copyButton?.addEventListener("click", async () => { if (!state.inviteLink) retur
 shareButton?.addEventListener("click", () => { if (!state.inviteLink) return; tg?.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(state.inviteLink)}&text=${encodeURIComponent("Заходи в HardPoint")}`); });
 saveLoginButton?.addEventListener("click", async () => { saveLoginButton.disabled = true; try { const r = await postApi("/api/club-login", { clubLogin: clubLoginInput.value.trim() }); clubLoginInput.value = r.clubLogin || ""; setStatus("Логин сохранён."); } catch { setStatus("Не удалось."); } finally { saveLoginButton.disabled = false; } });
 
-navHome.addEventListener("click", () => showView(homeView));
-navClub?.addEventListener("click", () => showView(clubView));
+document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.addEventListener("click", () => { openGroup(b.dataset.group); tg?.HapticFeedback?.selectionChanged(); }));
 homeClubCard?.addEventListener("click", () => showView(clubView));
-navSeries.addEventListener("click", () => showView(leagueView));
-navLive.addEventListener("click", () => showView(liveView));
-navEsport.addEventListener("click", () => showView(esportView));
 backButton.addEventListener("click", goBack);
 profileMenuButton.addEventListener("click", toggleProfileDropdown);
 homeAvatarButton?.addEventListener("click", () => showView(profileView));

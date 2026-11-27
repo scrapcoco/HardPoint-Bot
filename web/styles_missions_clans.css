@@ -4,25 +4,25 @@
 .daily-reward-banner{
   position:relative;overflow:hidden;
   padding:1.2rem;border-radius:1.35rem;margin-bottom:.65rem;
-  border:1px solid rgba(255,221,61,.3);
-  background:linear-gradient(135deg,rgba(255,221,61,.16),rgba(255,221,61,.05));
+  border:1px solid rgba(244,237,224,.3);
+  background:linear-gradient(135deg,rgba(244,237,224,.16),rgba(244,237,224,.05));
 }
 .daily-reward-banner::before{
   content:"";position:absolute;top:-1.5rem;right:-1.5rem;
   width:6rem;height:6rem;border-radius:50%;
-  background:rgba(255,221,61,.1);pointer-events:none;
+  background:rgba(244,237,224,.1);pointer-events:none;
 }
 .daily-badge{
   display:inline-block;padding:.25rem .65rem;margin-bottom:.55rem;
-  border-radius:999px;background:rgba(255,221,61,.18);
-  color:#ffdd3d;font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+  border-radius:999px;background:rgba(244,237,224,.18);
+  color:#F4EDE0;font-size:.6rem;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
 }
 .daily-reward-banner h3{font-size:1.1rem;font-weight:900;margin-bottom:.25rem;color:var(--ink)}
 .daily-reward-banner p{font-size:.76rem;color:var(--muted);margin-bottom:.85rem;line-height:1.4}
 .daily-claim-btn{
   display:inline-flex;align-items:center;gap:.4rem;
   padding:.65rem 1.35rem;border-radius:999px;
-  background:#ffdd3d;color:#141414;
+  background:#F4EDE0;color:#141414;
   font:inherit;font-size:.84rem;font-weight:900;border:none;cursor:pointer;
   transition:all .18s;
 }
@@ -33,8 +33,8 @@
 .daily-coins-badge{
   display:inline-flex;align-items:center;gap:.3rem;
   padding:.3rem .65rem;border-radius:999px;
-  background:rgba(255,221,61,.12);border:1px solid rgba(255,221,61,.2);
-  color:#ffdd3d;font-size:.72rem;font-weight:900;
+  background:rgba(244,237,224,.12);border:1px solid rgba(244,237,224,.2);
+  color:#F4EDE0;font-size:.72rem;font-weight:900;
   margin-left:.5rem;
 }
 
@@ -49,21 +49,21 @@
 }
 .mission-mini-card .m-icon{font-size:1.6rem;display:block;margin-bottom:.45rem}
 .mission-mini-card h4{font-size:.82rem;font-weight:900;color:var(--ink);margin-bottom:.2rem}
-.mission-mini-card .m-reward{font-size:.7rem;font-weight:900;color:#ffdd3d;margin-bottom:.6rem}
+.mission-mini-card .m-reward{font-size:.7rem;font-weight:900;color:#F4EDE0;margin-bottom:.6rem}
 .mission-done{
   display:inline-flex;align-items:center;gap:.3rem;
-  font-size:.68rem;font-weight:900;color:#00e5c0;
+  font-size:.68rem;font-weight:900;color:#3EE6E0;
   padding:.3rem .65rem;border-radius:999px;
-  background:rgba(0,229,192,.1);border:1px solid rgba(0,229,192,.2);
+  background:rgba(62,230,224,.1);border:1px solid rgba(62,230,224,.2);
 }
 .mission-go-btn{
   display:block;width:100%;padding:.5rem;
-  border-radius:.65rem;border:1px solid rgba(255,221,61,.25);
-  background:rgba(255,221,61,.1);color:#ffdd3d;
+  border-radius:.65rem;border:1px solid rgba(244,237,224,.25);
+  background:rgba(244,237,224,.1);color:#F4EDE0;
   font:inherit;font-size:.72rem;font-weight:900;cursor:pointer;
   transition:all .18s;
 }
-.mission-go-btn:hover{background:rgba(255,221,61,.2)}
+.mission-go-btn:hover{background:rgba(244,237,224,.2)}
 
 .streak-gaming-card{
   padding:1rem;border-radius:1.25rem;margin-bottom:.65rem;
@@ -111,7 +111,7 @@
 .social-mission-icon.dc{background:rgba(88,101,242,.2)}
 .social-mission-body{flex:1;min-width:0}
 .social-mission-body h5{font-size:.84rem;font-weight:900;color:var(--ink);margin-bottom:.1rem}
-.social-mission-body p{font-size:.72rem;font-weight:900;color:#ffdd3d}
+.social-mission-body p{font-size:.72rem;font-weight:900;color:#F4EDE0}
 .social-mission-action{
   display:flex;flex-direction:column;gap:.3rem;align-items:flex-end;
 }
@@ -123,8 +123,8 @@
 }
 .social-claim-btn{
   padding:.45rem .75rem;border-radius:.65rem;
-  border:1px solid rgba(255,221,61,.25);
-  background:rgba(255,221,61,.1);color:#ffdd3d;
+  border:1px solid rgba(244,237,224,.25);
+  background:rgba(244,237,224,.1);color:#F4EDE0;
   font:inherit;font-size:.68rem;font-weight:900;cursor:pointer;
 }
 .social-claim-btn:disabled{opacity:.4;cursor:not-allowed}
@@ -177,14 +177,14 @@
 
 .clan-top-widget{
   border-radius:1.25rem;overflow:hidden;
-  border:1px solid rgba(255,221,61,.2);
-  background:rgba(255,221,61,.04);
+  border:1px solid rgba(244,237,224,.2);
+  background:rgba(244,237,224,.04);
 }
 .clan-top-widget-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);
 }
-.clan-top-widget-header h4{font-size:.82rem;font-weight:900;color:#ffdd3d}
+.clan-top-widget-header h4{font-size:.82rem;font-weight:900;color:#F4EDE0}
 .clan-top-widget-header span{font-size:.68rem;color:var(--muted)}
 .clan-top-row{
   display:flex;align-items:center;gap:.65rem;
@@ -192,7 +192,7 @@
 }
 .clan-top-row:last-child{border-bottom:none}
 .clan-top-place{width:1.4rem;font-size:.82rem;font-weight:900;text-align:center}
-.clan-top-place.gold{color:#ffdd3d}
+.clan-top-place.gold{color:#F4EDE0}
 .clan-top-place.silver{color:#c0c0c0}
 .clan-top-place.bronze{color:#cd7f32}
 .clan-top-avatar{
@@ -207,7 +207,7 @@
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .clan-top-info p{font-size:.65rem;color:var(--muted)}
-.clan-top-xp{font-size:.82rem;font-weight:900;color:#ffdd3d}
+.clan-top-xp{font-size:.82rem;font-weight:900;color:#F4EDE0}
 
 /* ── HOME MISSIONS CARD REDESIGN ── */
 .quick-missions-big{
@@ -215,8 +215,8 @@
   grid-column:1 / -1;
   display:flex;align-items:center;justify-content:space-between;
   gap:.75rem;padding:.85rem 1rem;
-  border:1px solid rgba(255,221,61,.3);border-radius:1.25rem;
-  background:linear-gradient(135deg,rgba(255,221,61,.14),rgba(255,221,61,.05));
+  border:1px solid rgba(244,237,224,.3);border-radius:1.25rem;
+  background:linear-gradient(135deg,rgba(244,237,224,.14),rgba(244,237,224,.05));
   cursor:pointer;text-align:left;
   transition:all .18s;
 }
@@ -225,7 +225,7 @@
 .quick-missions-big .qmb-left{flex:1;min-width:0}
 .quick-missions-big .qmb-label{
   font-size:.58rem;font-weight:900;text-transform:uppercase;
-  letter-spacing:.5px;color:rgba(255,221,61,.7);margin-bottom:.2rem;
+  letter-spacing:.5px;color:rgba(244,237,224,.7);margin-bottom:.2rem;
 }
 .quick-missions-big .qmb-title{font-size:.95rem;font-weight:900;color:var(--ink);margin-bottom:.3rem}
 .quick-missions-big .qmb-progress{
@@ -234,10 +234,10 @@
 }
 .quick-missions-big .qmb-progress-fill{
   height:100%;border-radius:inherit;
-  background:#ffdd3d;width:66%;
+  background:#F4EDE0;width:66%;
 }
 .quick-missions-big .qmb-reward{
-  font-size:.68rem;font-weight:900;color:#ffdd3d;margin-top:.3rem;
+  font-size:.68rem;font-weight:900;color:#F4EDE0;margin-top:.3rem;
 }
 .quick-missions-big .qmb-icon{font-size:2.2rem;flex-shrink:0}
 

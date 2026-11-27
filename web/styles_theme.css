@@ -1,0 +1,88 @@
+/* ── HARDPOINT THEME: dark base, clear cards, one accent per section ──
+   Loaded last. Colours come from the brand palette (see cennik / stories). */
+:root{
+  --bg:#15132B;            /* page: flat, no gradient */
+  --panel:#221E45;         /* cards: clearly lighter than the page */
+  --panel-strong:#2C2757;  /* rows inside cards */
+  --field:#2C2757;
+  --line:rgba(185,166,232,.22);
+  --ink:#FFFFFF; --soft:#E6DDF7; --muted:#ADA3CF;
+  --cream:#F4EDE0; --ink-dark:#24143C;
+  --peach:#F6A97A; --pink:#FF4FD8; --rose:#F27BA8; --cyan:#3EE6E0;
+  --yellow:var(--cream); --ysoft:rgba(244,237,224,.1); --yellow-soft:rgba(244,237,224,.12);
+  --teal:var(--cyan); --tsoft:rgba(62,230,224,.14);
+  --red:#FF5C8A; --purple:#B9A6E8; --violet:#B9A6E8;
+  --accent:var(--cream);
+  --shadow:rgba(0,0,0,.35);
+}
+body[data-section="club"]{--accent:var(--peach)}
+body[data-section="tournaments"]{--accent:var(--pink)}
+body[data-section="profile"]{--accent:var(--cyan)}
+
+html,body{background:var(--bg)!important;font-family:Montserrat,Inter,system-ui,sans-serif}
+body::before,#arena{display:none!important}
+h1,h2,h3,.qmb-title,.club-head h2{font-family:Oswald,Montserrat,sans-serif;letter-spacing:.2px}
+
+/* header */
+.brand-row{background:rgba(21,19,43,.92)!important;border-bottom:1px solid var(--line)!important}
+.hp-mark{background:var(--cream)!important;color:var(--ink-dark)!important;box-shadow:none!important;animation:none!important}
+.brand-title .eyebrow{color:var(--accent)!important}
+.coin-pill{background:var(--cream)!important;color:var(--ink-dark)!important;border:0!important}
+.back-button{display:none!important}
+
+/* sub-tabs (Турниры, Профиль) */
+.subnav{display:flex;gap:.35rem;margin:.1rem -.75rem .6rem;padding:0 .75rem .1rem;overflow-x:auto;scrollbar-width:none}
+.subnav[hidden]{display:none}
+.subnav::-webkit-scrollbar{display:none}
+.subnav-btn{flex:0 0 auto;padding:.5rem .85rem;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--soft);font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}
+.subnav-btn.is-current{background:var(--accent);border-color:var(--accent);color:var(--ink-dark)}
+
+/* cards: one solid surface + thin light border; colour only on key elements */
+.welcome-panel,.club-panel,.club-strip,.quick-card,.quick-missions-big,.live-panel,.missions-panel,.clans-panel,.esport-panel,.league-panel,.profile-panel,.profile-summary-panel,.profile-empty-panel,.rank-panel,.rank-hint-panel,.awards-panel,.top-panel,.link-panel,.twitch-player-section,.profile-streak,.live-stats-bar{
+  background:var(--panel)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-radius:1rem!important;backdrop-filter:none!important;background-image:none!important}
+
+/* home: status strip + cards with a coloured left edge */
+.welcome-panel .profile-pill,.profile-dropdown{display:none!important}
+.welcome-copy p{color:var(--muted)!important}
+.user-avatar{background:var(--cream)!important;color:var(--ink-dark)!important}
+.club-strip{border-left:4px solid var(--peach)!important}
+.club-strip-cta{background:var(--peach)!important;color:var(--ink-dark)!important}
+.quick-missions-big{border-left:4px solid var(--cyan)!important}
+.quick-series{border-left:4px solid var(--pink)!important}
+.quick-esport{border-left:4px solid var(--rose)!important}
+.quick-card{min-height:5.6rem}
+.quick-card strong{font-size:.8rem!important;color:var(--ink)!important;text-transform:none!important;letter-spacing:0!important}
+.quick-card small,.club-strip-copy small{font-size:.74rem!important;color:var(--muted)!important}
+.qmb-label{color:var(--cyan)!important}
+.qmb-title{font-size:1.05rem!important;color:var(--ink)!important}
+.qmb-reward{color:var(--muted)!important}
+
+/* labels & text sizes: readable on a phone */
+.label,.eyebrow{color:var(--accent)!important;font-size:.7rem!important;letter-spacing:.4px}
+.live-team span{font-size:.84rem}
+.club-section-note,.club-tagline{font-size:.74rem!important}
+
+/* buttons: cream = main action */
+.club-action.is-primary,.live-score-form button,.club-tab.is-active,.daily-claim-btn,.mission-go-btn,#save-login-button,#create-clan-button,#league-create-team-button,#league-join-button,#league-register-button,#copy-button{
+  background:var(--cream)!important;color:var(--ink-dark)!important;border:0!important;box-shadow:none!important}
+.club-tab,.club-action{background:var(--panel-strong)!important;border:1px solid var(--line)!important;color:var(--ink)!important}
+.club-tab.is-active{background:var(--peach)!important}
+.club-price{background:var(--bg)!important;border:1px solid var(--line)}
+.club-price.is-main{background:var(--peach)!important;color:var(--ink-dark)!important;border-color:var(--peach)}
+.club-price.is-main b{color:rgba(36,20,60,.6)!important}
+.club-promo{background:rgba(246,169,122,.12)!important;border:1px solid rgba(246,169,122,.45)!important;color:var(--ink)!important}
+.club-hours-row.is-today{background:rgba(246,169,122,.16)!important;color:var(--peach)!important}
+.club-hours-row.is-today strong{color:var(--peach)!important}
+
+/* LIVE */
+.live-match{background:var(--panel)!important;border:1px solid var(--line)!important}
+.live-match-bar.pending{background:var(--panel-strong)!important}
+.live-score-btn{background:rgba(255,79,216,.12)!important;color:var(--pink)!important;border-color:rgba(255,79,216,.4)!important}
+.live-tab.is-active{background:var(--accent)!important;color:var(--ink-dark)!important}
+
+/* bottom nav: 4 tabs, icon + label, accent on current */
+.bottom-nav{grid-template-columns:repeat(4,1fr)!important;background:rgba(21,19,43,.97)!important;border-top:1px solid var(--line)!important}
+.nav-btn{color:var(--muted)!important;gap:.25rem!important;background:transparent!important;border:0!important}
+.nav-btn svg{width:1.45rem;height:1.45rem;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn small{font-size:.68rem!important;font-weight:800!important;color:inherit!important}
+.nav-btn.is-current{color:var(--accent)!important}

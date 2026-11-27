@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="/styles_twitch.css?v=48">
     <link rel="stylesheet" href="/styles_start_warning.css?v=48">
     <link rel="stylesheet" href="/styles_club.css?v=52">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
+    <link rel="stylesheet" href="/styles_theme.css?v=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -39,6 +42,7 @@
           <button id="header-coins" class="coin-pill" type="button">🪙 <span id="header-coin-balance">0</span></button>
         </div>
       </header>
+      <nav id="subnav" class="subnav" aria-label="Подразделы" hidden></nav>
 
       <!-- HOME VIEW -->
       <div id="home-view" class="app-view is-active">
@@ -368,12 +372,11 @@
         </section>
       </div>
 
-      <nav class="bottom-nav">
-        <button id="nav-home" class="nav-btn is-current" type="button"><span>⌂</span><small>Главная</small></button>
-        <button id="nav-club" class="nav-btn" type="button"><span>💰</span><small>Клуб</small></button>
-        <button id="nav-series" class="nav-btn" type="button"><span>🏆</span><small>Series</small></button>
-        <button id="nav-live" class="nav-btn nav-live" type="button"><span>⚡</span><small>LIVE</small></button>
-        <button id="nav-esport" class="nav-btn" type="button"><span>🎮</span><small>E-sport</small></button>
+      <nav class="bottom-nav" aria-label="Разделы">
+        <button id="nav-home" class="nav-btn is-current" type="button" data-group="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><small>Главная</small></button>
+        <button id="nav-club" class="nav-btn" type="button" data-group="club"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg><small>Клуб</small></button>
+        <button id="nav-series" class="nav-btn" type="button" data-group="tournaments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 20h8"/></svg><small>Турниры</small></button>
+        <button id="nav-profile" class="nav-btn" type="button" data-group="profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>Профиль</small></button>
       </nav>
       <p class="status" id="status"></p>
     </main>

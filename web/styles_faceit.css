@@ -13,9 +13,9 @@
 .live-faceit-link{
   display:grid;width:100%;min-height:2.35rem;place-items:center;
   margin:.35rem 0 .4rem;padding:0 .75rem;
-  border:1px solid rgba(0,229,192,.3);border-radius:.75rem;
-  color:var(--teal);background:rgba(0,229,192,.08);
+  border:1px solid rgba(62,230,224,.3);border-radius:.75rem;
+  color:var(--teal);background:rgba(62,230,224,.08);
   font-size:.78rem;font-weight:900;text-decoration:none;
   transition:all .18s;
 }
-.live-faceit-link:hover{background:rgba(0,229,192,.15);border-color:rgba(0,229,192,.55)}
+.live-faceit-link:hover{background:rgba(62,230,224,.15);border-color:rgba(62,230,224,.55)}
