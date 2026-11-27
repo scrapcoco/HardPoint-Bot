@@ -2256,6 +2256,8 @@ def club_section(section: str, info: Dict[str, object]) -> tuple:
             socials.append(InlineKeyboardButton("Instagram", url=_text(info.get("instagram"))))
         if _text(info.get("discord")):
             socials.append(InlineKeyboardButton("Discord", url=_text(info.get("discord"))))
+        if _text(info.get("website")):
+            socials.append(InlineKeyboardButton("Сайт", url=_text(info.get("website"))))
         if socials:
             rows.append(socials)
         rows.append([InlineKeyboardButton("💰 Цены", callback_data="club:prices")])
@@ -2343,6 +2345,7 @@ def club_public_payload(info: Dict[str, object]) -> Dict[str, object]:
         "bookingUrl": _text(info.get("booking_url")),
         "instagram": _text(info.get("instagram")),
         "discord": _text(info.get("discord")),
+        "website": _text(info.get("website")),
         "hours": hours,
         "hoursNote": _text(info.get("hours_note")),
         "status": club_open_status(info),

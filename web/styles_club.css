@@ -57,3 +57,4 @@
 .club-actions:empty{display:none}
 .club-action{padding:.65rem;border:1px solid var(--line);border-radius:.85rem;color:var(--ink);background:var(--field);font:inherit;font-size:.74rem;font-weight:900;cursor:pointer}
 .club-action.is-primary{grid-column:1 / -1;color:#151515;background:var(--yellow);border-color:var(--yellow)}
+.club-phone{color:var(--soft);text-decoration:none}

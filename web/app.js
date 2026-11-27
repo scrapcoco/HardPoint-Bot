@@ -303,13 +303,14 @@ function renderClub(data) {
   }).join("") + (data.hoursNote ? `<p class="club-section-note">${escapeHtml(data.hoursNote)}</p>` : "");
   const contacts = [];
   if (data.address) contacts.push(`<span>📍 ${escapeHtml(data.address)}</span>`);
-  if (data.phone) contacts.push(`<span>☎️ ${escapeHtml(data.phone)}</span>`);
+  if (data.phone) contacts.push(`<a class="club-phone" href="tel:${escapeHtml(data.phone.replace(/\s+/g, ""))}">☎️ ${escapeHtml(data.phone)}</a>`);
   document.querySelector("#club-contacts").innerHTML = contacts.join("");
   const actions = [];
   if (data.bookingUrl) actions.push(["📅 Забронировать место", data.bookingUrl, true]);
   if (data.mapUrl) actions.push(["🗺 Как добраться", data.mapUrl, false]);
   if (data.instagram) actions.push(["Instagram", data.instagram, false]);
   if (data.discord) actions.push(["Discord", data.discord, false]);
+  if (data.website) actions.push(["Сайт клуба", data.website, false]);
   document.querySelector("#club-actions").innerHTML = actions.map(([label, url, primary]) => `<button class="club-action${primary ? " is-primary" : ""}" type="button" data-club-link="${escapeHtml(url)}">${escapeHtml(label)}</button>`).join("");
 }
 async function loadClub() {
