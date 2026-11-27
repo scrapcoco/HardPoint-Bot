@@ -1,11 +1,5 @@
 const tg = window.Telegram?.WebApp;
 const state = {
-  inviteLink: "",
-  weeklyTop: [],
-  allTimeTop: [],
-  clanWeeklyTop: [],
-  clanMonthlyTop: [],
-  clans: null,
   league: null,
   activeView: null,
   previousView: null,
@@ -19,115 +13,24 @@ const state = {
   myTgId: null,
 };
 
-const inviteLinkNode = document.querySelector("#invite-link");
-const weeklyCountNode = document.querySelector("#weekly-count");
-const allTimeCountNode = document.querySelector("#all-time-count");
-const headerCoinBalance = document.querySelector("#header-coin-balance");
 const homeUsernameNode = document.querySelector("#home-username");
-const homeAvatarButton = document.querySelector("#home-avatar-button");
-const profileDropdown = document.querySelector("#profile-dropdown");
-const dropdownProfileButton = document.querySelector("#dropdown-profile-button");
-const dropdownSettingsButton = document.querySelector("#dropdown-settings-button");
-const profileInvitesButton = document.querySelector("#profile-invites-button");
-const profileClanBadge = document.querySelector("#profile-clan-badge");
-const homeMissionsCard = document.querySelector("#home-missions-card");
 const homeSeriesCard = document.querySelector("#home-series-card");
 const homeLiveCard = document.querySelector("#home-live-card");
-const rankHintText = document.querySelector("#rank-hint-text");
-const topListNode = document.querySelector("#top-list");
-const topTitleNode = document.querySelector("#top-title");
 const statusNode = document.querySelector("#status");
-const copyButton = document.querySelector("#copy-button");
-const shareButton = document.querySelector("#share-button");
-const weeklyTab = document.querySelector("#weekly-tab");
-const allTimeTab = document.querySelector("#all-time-tab");
 const clubLoginInput = document.querySelector("#club-login");
 const saveLoginButton = document.querySelector("#save-login-button");
 const homeView = document.querySelector("#home-view");
-const profileView = document.querySelector("#profile-view");
-const invitesView = document.querySelector("#invites-view");
-const missionsView = document.querySelector("#missions-view");
-const clansView = document.querySelector("#clans-view");
 const leagueView = document.querySelector("#league-view");
 const liveView = document.querySelector("#live-view");
-const esportView = document.querySelector("#esport-view");
 const clubView = document.querySelector("#club-view");
 const navClub = document.querySelector("#nav-club");
 const homeClubCard = document.querySelector("#home-club-card");
 const liveContent = document.querySelector("#live-content");
 const liveTab5x5 = document.querySelector("#live-tab-5x5");
 const liveTab2x2 = document.querySelector("#live-tab-2x2");
-const profileMenuButton = document.querySelector("#profile-menu-button");
-const profileMissionsButton = document.querySelector("#profile-missions-button");
-const profileClansButton = document.querySelector("#profile-clans-button");
-const backButton = document.querySelector("#back-button");
 const navHome = document.querySelector("#nav-home");
 const navSeries = document.querySelector("#nav-series");
-const navProfile = document.querySelector("#nav-profile");
 const subnav = document.querySelector("#subnav");
-const rankTitleNode = document.querySelector("#rank-title");
-const rankScoreNode = document.querySelector("#rank-score");
-const rankMeterFillNode = document.querySelector("#rank-meter-fill");
-const rankNextNode = document.querySelector("#rank-next");
-const coinNoteNode = document.querySelector("#coin-note");
-const rankInvitesNode = document.querySelector("#rank-invites");
-const rankCoinsNode = document.querySelector("#rank-coins");
-const rankVisitsNode = document.querySelector("#rank-visits");
-const dailyRewardButton = document.querySelector("#daily-reward-button");
-const visitRewardButton = document.querySelector("#visit-reward-button");
-const dailyRewardStatus = document.querySelector("#daily-reward-status");
-const visitRewardStatus = document.querySelector("#visit-reward-status");
-const missionStreakNode = document.querySelector("#mission-streak");
-const missionStreakBig = document.querySelector("#mission-streak-big");
-const instagramRewardButton = document.querySelector("#instagram-reward-button");
-const discordRewardButton = document.querySelector("#discord-reward-button");
-const instagramRewardStatus = document.querySelector("#instagram-reward-status");
-const discordRewardStatus = document.querySelector("#discord-reward-status");
-const profileStreakDaysNode = document.querySelector("#profile-streak-days");
-const profileStreakFillNode = document.querySelector("#profile-streak-fill");
-const profileStreakMarkers = document.querySelectorAll(".streak-marker");
-const streakMilestones = document.querySelectorAll(".streak-milestone[data-streak]");
-const clanGate = document.querySelector("#clan-gate");
-const clanGateProgress = document.querySelector("#clan-gate-progress");
-const clanGateCount = document.querySelector("#clan-gate-count");
-const clanCurrent = document.querySelector("#clan-current");
-const clanJoin = document.querySelector("#clan-join");
-const clanNameNode = document.querySelector("#clan-name");
-const clanLevelNode = document.querySelector("#clan-level");
-const clanSlotsNode = document.querySelector("#clan-slots");
-const clanWeeklyXpNode = document.querySelector("#clan-weekly-xp");
-const clanMonthlyXpNode = document.querySelector("#clan-monthly-xp");
-const clanTotalXpNode = document.querySelector("#clan-total-xp");
-const clanLevelFillNode = document.querySelector("#clan-level-fill");
-const clanNextLevelNode = document.querySelector("#clan-next-level");
-const clanChestTitleNode = document.querySelector("#clan-chest-title");
-const clanChestXpNode = document.querySelector("#clan-chest-xp");
-const clanChestFillNode = document.querySelector("#clan-chest-fill");
-const clanChestNoteNode = document.querySelector("#clan-chest-note");
-const clanChestMarkers = document.querySelectorAll(".clan-chest-marker");
-const clanDailyGoalNode = document.querySelector("#clan-daily-goal");
-const clanCheckinButton = document.querySelector("#clan-checkin-button");
-const clanCheckinStatus = document.querySelector("#clan-checkin-status");
-const clanMyRoleNode = document.querySelector("#clan-my-role");
-const clanMyWeeklyNode = document.querySelector("#clan-my-weekly");
-const clanMyTotalNode = document.querySelector("#clan-my-total");
-const clanMyCheckinsNode = document.querySelector("#clan-my-checkins");
-const clanMyActiveNode = document.querySelector("#clan-my-active");
-const clanCodeNode = document.querySelector("#clan-code");
-const copyClanCodeButton = document.querySelector("#copy-clan-code-button");
-const clanMembersList = document.querySelector("#clan-members-list");
-const newClanNameInput = document.querySelector("#new-clan-name");
-const newClanPublicInput = document.querySelector("#new-clan-public");
-const createClanButton = document.querySelector("#create-clan-button");
-const createClanNote = document.querySelector("#create-clan-note");
-const joinClanCodeInput = document.querySelector("#join-clan-code");
-const joinClanCodeButton = document.querySelector("#join-clan-code-button");
-const publicClansList = document.querySelector("#public-clans-list");
-const clanWeeklyTab = document.querySelector("#clan-weekly-tab");
-const clanMonthlyTab = document.querySelector("#clan-monthly-tab");
-const clanTopTitleNode = document.querySelector("#clan-top-title");
-const clanTopList = document.querySelector("#clan-top-list");
-const clanTopListWidget = document.querySelector("#clan-top-list-widget");
 const leagueRoleNode = document.querySelector("#league-role");
 const leagueXpNode = document.querySelector("#league-xp");
 const leagueNextTitle = document.querySelector("#league-next-title");
@@ -170,12 +73,8 @@ const seriesSelectedTitle = document.querySelector("#series-selected-title");
 const seriesSelectedBadge = document.querySelector("#series-selected-badge");
 const faceitHubBanner = document.querySelector("#faceit-hub-banner");
 const faceitHubLink = document.querySelector("#faceit-hub-link");
-const teamFinalsButton = document.querySelector("#team-finals-button");
-const teamFinalsPanel = document.querySelector("#team-finals-panel");
-const namaIconButton = document.querySelector("#nama-icon-button");
-const namaProfilePanel = document.querySelector("#nama-profile-panel");
 
-const ALL_VIEWS = [homeView, profileView, invitesView, missionsView, clansView, leagueView, liveView, esportView, clubView];
+const ALL_VIEWS = [homeView, clubView, leagueView, liveView];
 state.activeView = homeView;
 
 function setStatus(msg) { statusNode.textContent = msg || ""; }
@@ -212,9 +111,7 @@ function showView(view, options = {}) {
   document.body.dataset.section = group.key;
   document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.classList.toggle("is-current", b.dataset.group === group.key));
   renderSubnav(group, view);
-  backButton.classList.remove("is-visible");
   window.scrollTo({ top: 0 });
-  closeProfileDropdown();
   if (view === liveView) loadLiveBracket();
   else stopLiveRefresh();
 }
@@ -222,8 +119,7 @@ function showView(view, options = {}) {
 const NAV_GROUPS = [
   { key: "home", views: [[homeView, "Главная"]] },
   { key: "club", views: [[clubView, "Клуб"]] },
-  { key: "tournaments", views: [[leagueView, "Турнир", "overview"], [leagueView, "Регистрация", "register"], [liveView, "Сетка LIVE"], [leagueView, "Таблица", "table"], [esportView, "Команды HP"], [leagueView, "Админ", "admin", "admin"]] },
-  { key: "profile", views: [[profileView, "Мой профиль"], [missionsView, "Миссии"], [invitesView, "Пригласить"], [clansView, "Кланы"]] },
+  { key: "tournaments", views: [[leagueView, "Турнир", "overview"], [leagueView, "Регистрация", "register"], [liveView, "Сетка LIVE"], [leagueView, "Таблица", "table"], [leagueView, "Админ", "admin", "admin"]] },
 ];
 function groupOf(view) { return NAV_GROUPS.find(g => g.views.some(([v]) => v === view)) || NAV_GROUPS[0]; }
 function renderSubnav(group, active) {
@@ -250,33 +146,12 @@ function openGroup(key) {
   const group = NAV_GROUPS.find(g => g.key === key);
   showView(state.lastInGroup[key] || group.views[0][0]);
 }
-function goBack() {
-  const target = state.previousView && state.previousView !== state.activeView ? state.previousView : homeView;
-  state.previousView = homeView;
-  showView(target, { skipHistory: true });
-}
-function closeProfileDropdown() {
-  profileDropdown.classList.remove("is-open");
-  profileDropdown.setAttribute("aria-hidden", "true");
-  profileMenuButton.setAttribute("aria-expanded", "false");
-}
-function toggleProfileDropdown() {
-  const open = !profileDropdown.classList.contains("is-open");
-  if (open) {
-    const rect = profileMenuButton.getBoundingClientRect();
-    profileDropdown.style.top = (rect.bottom + 6) + "px";
-    profileDropdown.style.right = (window.innerWidth - rect.right) + "px";
-  }
-  profileDropdown.classList.toggle("is-open", open);
-  profileDropdown.setAttribute("aria-hidden", String(!open));
-  profileMenuButton.setAttribute("aria-expanded", String(open));
-}
 
 // Bot buttons open the app with ?view=series / ?view=live etc.
 function initialViewFromLocation() {
   const params = new URLSearchParams(window.location.search);
   const view = String(params.get("view") || tg?.initDataUnsafe?.start_param || "").toLowerCase();
-  const map = { club: clubView, prices: clubView, series: leagueView, league: leagueView, live: liveView, clans: clansView, missions: missionsView, profile: profileView, invites: invitesView, esport: esportView };
+  const map = { club: clubView, prices: clubView, series: leagueView, league: leagueView, live: liveView };
   return map[view] || null;
 }
 function showInitialView() {
@@ -331,6 +206,13 @@ function renderClub(data) {
   badge.textContent = data.status?.known ? (data.status.openNow ? "● Открыто" : "Закрыто") : "";
   badge.classList.toggle("is-open", Boolean(data.status?.openNow));
   document.querySelector("#club-promos").innerHTML = (data.promos || []).map(p => `<div class="club-promo">${escapeHtml(p)}</div>`).join("");
+  const homePromos = document.querySelector("#home-promos");
+  if (homePromos) {
+    homePromos.innerHTML = (data.promos || []).map(p => `<button class="home-row" type="button" data-color="peach" data-go-club><span class="home-row-icon"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(p.includes(": ") ? p.slice(0, p.indexOf(": ")) : p)}</strong><small>${escapeHtml(p.includes(": ") ? p.slice(p.indexOf(": ") + 2) : "Подробнее в разделе Клуб")}</small></span><span class="home-row-arrow" aria-hidden="true">›</span></button>`).join("");
+    homePromos.hidden = !(data.promos || []).length;
+    document.querySelector("#home-promos-label").hidden = homePromos.hidden;
+    homePromos.onclick = e => { if (e.target.closest("[data-go-club]")) showView(clubView); };
+  }
   renderClubPrices();
   document.querySelector("#club-hours").innerHTML = (data.hours || []).map(h => {
     const today = Array.isArray(h.weekdays) && h.weekdays.includes(data.today);
@@ -500,159 +382,6 @@ function openFaceitRoomForm(btn) {
 }
 
 // ── RENDER ──
-function renderTop(items) {
-  if (!topListNode) return;
-  if (!items.length) { topListNode.innerHTML = "<li>Пока нет приглашений</li>"; return; }
-  topListNode.innerHTML = items.map((item, i) => {
-    const name = item.username ? `@${item.username}` : item.name;
-    const rank = item.rank ? `<small>${escapeHtml(item.rank.icon)} ${escapeHtml(item.rank.title)}</small>` : "";
-    return `<li><strong>${i + 1}. ${escapeHtml(name)}${rank}</strong><span>${item.total}</span></li>`;
-  }).join("");
-}
-function renderRank(user) {
-  const rank = user.rank || {}; const progress = user.progress || {};
-  const score = Number(progress.score || rank.score || 0);
-  const nextScore = Number(rank.nextScore || score);
-  const minScore = Math.max(0, nextScore - Number(rank.remaining || 0));
-  const pct = rank.isMax ? 100 : Math.min(100, Math.round((Math.max(0, score - minScore) / Math.max(1, nextScore - minScore)) * 100));
-  if (rankTitleNode) rankTitleNode.textContent = `${rank.icon || "🥉"} ${rank.title || "Recruit"}`;
-  if (rankScoreNode) rankScoreNode.textContent = String(score);
-  if (rankMeterFillNode) rankMeterFillNode.style.width = `${pct}%`;
-  if (rankNextNode) rankNextNode.textContent = rank.isMax ? "Максимальный ранг." : `До ${rank.nextIcon || ""} ${rank.nextTitle || ""}: ${rank.remaining || 0}`;
-  if (rankInvitesNode) rankInvitesNode.textContent = String(progress.invites || 0);
-  if (rankCoinsNode) rankCoinsNode.textContent = String(progress.coins || 0);
-  if (rankVisitsNode) rankVisitsNode.textContent = String(progress.visits || 0);
-  if (headerCoinBalance) headerCoinBalance.textContent = String(progress.coins || 0);
-  if (coinNoteNode) coinNoteNode.textContent = `За каждого приглашённого: ${progress.inviteCoinReward || 20} монет.`;
-  if (rankHintText) rankHintText.textContent = rank.isMax ? "Максимальный ранг." : `Пригласи ещё ${rank.remaining || 0} и стань ${rank.nextTitle || ""}.`;
-  const invites = Number(progress.invites || 0);
-  if (clanGateProgress) clanGateProgress.style.width = `${Math.min(100, (invites / 10) * 100)}%`;
-  if (clanGateCount) clanGateCount.textContent = `${invites} / 10 приглашений`;
-  const p = document.querySelector("#home-missions-progress");
-  if (p) p.style.width = `${Math.min(100, (invites / 50) * 100)}%`;
-}
-function renderMissions(missions) {
-  const daily = missions.dailyReward || {}; const visit = missions.visitReward || {};
-  const streak = missions.streak || {}; const social = missions.social || {};
-  if (dailyRewardButton) { dailyRewardButton.disabled = !daily.canClaim; dailyRewardButton.textContent = daily.canClaim ? "🪙 Забрать награду" : "✓ Забрано · Завтра снова"; }
-  if (visitRewardButton) { visitRewardButton.disabled = !visit.canClaim; visitRewardButton.textContent = visit.canClaim ? "Забрать" : "Готово"; }
-  if (visitRewardStatus) visitRewardStatus.textContent = visit.canClaim ? "" : "До завтра";
-  const days = Number(streak.days || 0);
-  if (missionStreakNode) missionStreakNode.textContent = String(days);
-  if (missionStreakBig) missionStreakBig.textContent = String(days);
-  renderProfileStreak(streak);
-  streakMilestones.forEach(m => m.classList.toggle("is-reached", days >= Number(m.dataset.streak || 0)));
-  renderSocialMission(instagramRewardButton, instagramRewardStatus, social.instagram || {}, "Instagram");
-  renderSocialMission(discordRewardButton, discordRewardStatus, social.discord || {}, "Discord");
-  const r = document.querySelector("#home-missions-reward");
-  if (r) r.textContent = daily.canClaim ? "🔥 Daily Reward ждёт!" : visit.canClaim ? "Визит дня доступен" : "Всё забрано на сегодня";
-}
-function renderProfileStreak(streak) {
-  const days = Math.max(0, Number(streak.days || 0));
-  if (profileStreakDaysNode) profileStreakDaysNode.textContent = String(days);
-  if (profileStreakFillNode) profileStreakFillNode.style.width = `${Math.min(100, (days / 30) * 100)}%`;
-  profileStreakMarkers.forEach(m => m.classList.toggle("is-reached", days >= Number(m.dataset.day || 0)));
-}
-function renderSocialMission(button, node, mission, title) {
-  if (!button) return;
-  const s = mission.status || "new";
-  button.disabled = s === "pending" || s === "claimed";
-  if (s === "claimed") { button.textContent = "Получено"; if (node) node.textContent = `Награда за ${title} получена.`; }
-  else if (s === "pending") { button.textContent = "На проверке"; if (node) node.textContent = `~${mission.hoursLeft || 24} ч.`; }
-  else if (s === "ready") { button.textContent = "Получить 500"; if (node) node.textContent = "Можно забрать."; }
-  else { button.textContent = "Отправить"; if (node) node.textContent = ""; }
-}
-function formatXp(v) { return `${Number(v || 0)} XP`; }
-function renderClans(data) {
-  state.clans = data || {};
-  state.clanWeeklyTop = state.clans.weeklyTop || [];
-  state.clanMonthlyTop = state.clans.monthlyTop || [];
-  const access = state.clans.access || {}; const clan = state.clans.currentClan;
-  const canJoin = Boolean(access.canJoin); const canCreate = Boolean(access.canCreate);
-  if (clanGate) clanGate.hidden = canJoin;
-  if (clanCurrent) clanCurrent.hidden = !clan;
-  if (clanJoin) clanJoin.hidden = Boolean(clan);
-  if (createClanButton) createClanButton.disabled = !canCreate;
-  if (createClanNote) createClanNote.textContent = canCreate ? "Можно создать." : "С ранга Legend.";
-  if (joinClanCodeButton) joinClanCodeButton.disabled = !canJoin;
-  if (clan) renderCurrentClan(clan);
-  renderPublicClans(state.clans.publicClans || [], canJoin);
-  renderClanTopWidget(state.clanWeeklyTop);
-  showClanWeeklyTop();
-}
-function renderClanTopWidget(items) {
-  if (!clanTopListWidget) return;
-  if (!items.length) { clanTopListWidget.innerHTML = "<div style='padding:.75rem 1rem;font-size:.78rem;color:var(--muted)'>Кланов пока нет</div>"; return; }
-  const places = ["gold", "silver", "bronze"];
-  clanTopListWidget.innerHTML = items.slice(0, 3).map((c, i) =>
-    `<div class="clan-top-row"><div class="clan-top-place ${places[i] || ''}">${i + 1}</div><div class="clan-top-avatar">${c.name.slice(0, 2).toUpperCase()}</div><div class="clan-top-info"><h5>${escapeHtml(c.name)}</h5><p>LVL ${c.level?.level || 1} · ${c.membersCount || 0} уч.</p></div><div class="clan-top-xp">${formatXp(c.periodXp || c.weeklyXp)}</div></div>`
-  ).join("");
-}
-function renderCurrentClan(clan) {
-  if (clanNameNode) clanNameNode.textContent = clan.name || "Клан";
-  if (clanLevelNode) clanLevelNode.textContent = `LVL ${clan.level?.level || 1}`;
-  if (clanSlotsNode) clanSlotsNode.textContent = `${clan.membersCount || 0}/${clan.level?.slots || 5}`;
-  if (clanWeeklyXpNode) clanWeeklyXpNode.textContent = formatXp(clan.weeklyXp);
-  if (clanMonthlyXpNode) clanMonthlyXpNode.textContent = formatXp(clan.monthlyXp);
-  if (clanTotalXpNode) clanTotalXpNode.textContent = formatXp(clan.totalXp);
-  const lv = clan.level || {};
-  const pct = lv.isMax ? 100 : Math.min(100, ((Number(clan.totalXp || 0) - Number(lv.xp || 0)) / Math.max(1, Number(lv.nextXp || lv.xp || 1) - Number(lv.xp || 0))) * 100);
-  if (clanLevelFillNode) clanLevelFillNode.style.width = `${pct}%`;
-  if (clanNextLevelNode) clanNextLevelNode.textContent = lv.isMax ? "Макс." : `До ${lv.nextLevel}: ${lv.remaining || 0} XP`;
-  renderClanChest(clan); renderClanContribution(clan); renderClanMembers(clan.members || []);
-  if (clanCodeNode) clanCodeNode.textContent = clan.code || "";
-}
-function renderClanChest(clan) {
-  const chest = clan.chest || {}; const reached = chest.reached; const next = chest.next;
-  if (clanChestTitleNode) clanChestTitleNode.textContent = reached ? `Достигнут ${reached.title}` : "Сундук ещё не достигнут";
-  if (clanChestXpNode) clanChestXpNode.textContent = formatXp(clan.weeklyXp);
-  if (clanChestFillNode) clanChestFillNode.style.width = `${Math.min(100, (Number(clan.weeklyXp || 0) / 3500) * 100)}%`;
-  clanChestMarkers.forEach(m => {
-    const c = (chest.chests || []).find(i => i.key === m.dataset.chest);
-    m.classList.toggle("is-reached", Boolean(c && Number(clan.weeklyXp || 0) >= Number(c.xp) && Number(clan.membersCount || 0) >= Number(c.members)));
-  });
-  if (next && clanChestNoteNode) {
-    const parts = [];
-    if (chest.missingXp) parts.push(`${chest.missingXp} XP`);
-    if (chest.missingMembers) parts.push(`${chest.missingMembers} уч.`);
-    clanChestNoteNode.textContent = parts.length ? `До ${next.title}: ${parts.join(" и ")}.` : `Достигнут ${next.title}.`;
-  } else if (clanChestNoteNode) clanChestNoteNode.textContent = "Копите XP.";
-}
-function renderClanContribution(clan) {
-  const daily = clan.dailyGoal || {}; const me = clan.me || {};
-  if (clanDailyGoalNode) clanDailyGoalNode.textContent = `${Math.min(Number(daily.checked || 0), Number(daily.target || 3))}/${daily.target || 3}`;
-  if (clanCheckinButton) { clanCheckinButton.disabled = Boolean(clan.checkedToday); clanCheckinButton.textContent = clan.checkedToday ? "Готово" : "Отметиться"; }
-  if (clanCheckinStatus) clanCheckinStatus.textContent = clan.checkedToday ? "Уже отмечен." : `+10 XP. Цель: ${daily.target || 3} уч. = +${daily.reward || 50} XP.`;
-  if (clanMyRoleNode) clanMyRoleNode.textContent = me.role === "leader" ? "Лидер" : "Участник";
-  if (clanMyWeeklyNode) clanMyWeeklyNode.textContent = formatXp(me.weeklyXp);
-  if (clanMyTotalNode) clanMyTotalNode.textContent = formatXp(me.totalXp);
-  if (clanMyCheckinsNode) clanMyCheckinsNode.textContent = String(me.checkins || 0);
-  if (clanMyActiveNode) clanMyActiveNode.textContent = me.isChestActive ? "Активен" : `+${me.needsForChest || 50} XP`;
-}
-function renderClanMembers(members) {
-  if (!clanMembersList) return;
-  if (!members.length) { clanMembersList.innerHTML = "<li>Пока нет</li>"; return; }
-  clanMembersList.innerHTML = members.map((m, i) =>
-    `<li><strong>${i + 1}. ${escapeHtml(m.name)}</strong><span>${formatXp(m.weeklyXp)} · ${m.checkins || 0} check-in</span></li>`
-  ).join("");
-}
-function renderPublicClans(clans, canJoin) {
-  if (!publicClansList) return;
-  if (!clans.length) { publicClansList.innerHTML = "<p class=\"panel-note\">Публичных кланов нет.</p>"; return; }
-  publicClansList.innerHTML = clans.map(c => {
-    const full = Number(c.membersCount || 0) >= Number(c.level?.slots || 5);
-    const dis = !canJoin || full ? "disabled" : "";
-    const txt = !canJoin ? "С Rookie" : full ? "Нет мест" : "Вступить";
-    return `<article class="public-clan-card"><div><strong>${escapeHtml(c.name)}</strong><span>LVL ${c.level?.level || 1} · ${c.membersCount || 0}/${c.level?.slots || 5} · ${formatXp(c.weeklyXp)}</span></div><button type="button" data-clan-id="${c.id}" ${dis}>${txt}</button></article>`;
-  }).join("");
-}
-function renderClanTop(items) {
-  if (!clanTopList) return;
-  if (!items.length) { clanTopList.innerHTML = "<li>Пока нет</li>"; return; }
-  clanTopList.innerHTML = items.map((c, i) =>
-    `<li><strong>${i + 1}. ${escapeHtml(c.name)}<small>LVL ${c.level?.level || 1} · ${c.membersCount || 0} уч.</small></strong><span>${formatXp(c.periodXp || c.weeklyXp)}</span></li>`
-  ).join("");
-}
 function renderLeague(data) {
   state.league = data || {};
   const user = state.league.user || {};
@@ -802,99 +531,29 @@ async function leagueJoinTeam() {
 
 // ── LOAD ──
 async function load() {
+  tg?.ready(); tg?.expand();
   loadClub();
   try {
-    tg?.ready(); tg?.expand();
-    const [me, weeklyTop, allTimeTop, clans, league] = await Promise.all([
-      api("/api/me"), api("/api/weekly-top"), api("/api/all-time-top"), api("/api/clans"), api("/api/league")
-    ]);
-    state.inviteLink = me.inviteLink;
-    state.weeklyTop = weeklyTop.top;
-    state.allTimeTop = allTimeTop.top;
+    const [me, league] = await Promise.all([api("/api/me"), api("/api/league")]);
     state.myTgId = me.user?.id;
-    if (inviteLinkNode) inviteLinkNode.textContent = me.inviteLink;
-    if (weeklyCountNode) weeklyCountNode.textContent = me.weeklyInvitedCount;
-    if (allTimeCountNode) allTimeCountNode.textContent = me.allTimeInvitedCount;
     if (clubLoginInput) clubLoginInput.value = me.user.clubLogin || "";
-    const displayName = me.user.username ? `@${me.user.username}` : (me.user.name || "Игрок");
-    if (homeUsernameNode) homeUsernameNode.textContent = displayName;
-    if (homeAvatarButton) homeAvatarButton.textContent = initialsFor(me.user.name || me.user.username || "HP");
-    renderRank(me.user); renderMissions(me.missions || {}); renderClans(clans); renderLeague(league);
-    showWeeklyTop(); showInitialView();
+    if (homeUsernameNode) homeUsernameNode.textContent = me.user.username ? `@${me.user.username}` : (me.user.name || "Игрок");
+    renderLeague(league);
   } catch {
-    if (inviteLinkNode) inviteLinkNode.textContent = "Откройте из Telegram.";
-    if (homeUsernameNode) homeUsernameNode.textContent = "@hardpoint";
-    if (homeAvatarButton) homeAvatarButton.textContent = "HP";
-    renderRank({ progress: {}, rank: {} }); renderMissions({}); renderClans({}); renderLeague({});
-    setStatus("Откройте из Telegram.");
-    showInitialView();
+    if (homeUsernameNode) homeUsernameNode.textContent = "гость";
+    renderLeague({});
+    setStatus("Откройте из Telegram, чтобы участвовать в турнирах.");
   }
-}
-async function refreshClans() { const c = await api("/api/clans"); renderClans(c); return c; }
-async function claimMission(mission) {
-  const buttons = { daily: dailyRewardButton, visit: visitRewardButton, instagram: instagramRewardButton, discord: discordRewardButton };
-  const button = buttons[mission]; if (!button) return; button.disabled = true;
-  try {
-    const result = await postApi("/api/missions/claim", { mission });
-    renderMissions(result.missions || {}); renderRank(result.user || {});
-    tg?.HapticFeedback?.notificationOccurred("success");
-    setStatus(result.message || `+${result.totalAwardedCoins || 0} HP Coins.`);
-  } catch { tg?.HapticFeedback?.notificationOccurred("error"); setStatus("Недоступно."); }
-  finally { if (button.textContent !== "✓ Забрано · Завтра снова" && button.textContent !== "Получено" && button.textContent !== "На проверке") button.disabled = false; }
-}
-function activateTab(active) {
-  [weeklyTab, allTimeTab].forEach(b => { if (!b) return; const on = b === active; b.classList.toggle("is-active", on); b.setAttribute("aria-selected", String(on)); b.style.color = on ? "#171714" : "var(--muted)"; b.style.background = on ? "var(--yellow)" : "transparent"; });
-}
-function showWeeklyTop() { activateTab(weeklyTab); if (topTitleNode) topTitleNode.textContent = "Топ недели"; renderTop(state.weeklyTop); }
-function showAllTimeTop() { activateTab(allTimeTab); if (topTitleNode) topTitleNode.textContent = "Топ за всё время"; renderTop(state.allTimeTop); }
-function activateClanTab(active) {
-  [clanWeeklyTab, clanMonthlyTab].forEach(b => { if (!b) return; const on = b === active; b.classList.toggle("is-active", on); b.setAttribute("aria-selected", String(on)); b.style.color = on ? "#171714" : "var(--muted)"; b.style.background = on ? "var(--yellow)" : "transparent"; });
-}
-function showClanWeeklyTop() { activateClanTab(clanWeeklyTab); if (clanTopTitleNode) clanTopTitleNode.textContent = "Топ недели"; renderClanTop(state.clanWeeklyTop); }
-function showClanMonthlyTop() { activateClanTab(clanMonthlyTab); if (clanTopTitleNode) clanTopTitleNode.textContent = "Топ месяца"; renderClanTop(state.clanMonthlyTop); }
-async function createClan() {
-  if (!createClanButton) return; createClanButton.disabled = true;
-  try { await postApi("/api/clans/create", { name: newClanNameInput.value.trim(), isPublic: newClanPublicInput.checked }); newClanNameInput.value = ""; await refreshClans(); setStatus("Клан создан."); }
-  catch { setStatus("Не удалось."); }
-  finally { if (createClanButton) createClanButton.disabled = !(state.clans?.access?.canCreate); }
-}
-async function joinClan(payload) {
-  if (!joinClanCodeButton) return; joinClanCodeButton.disabled = true;
-  try { await postApi("/api/clans/join", payload); await refreshClans(); setStatus("Ты в клане."); }
-  catch { setStatus("Не удалось."); }
-  finally { if (joinClanCodeButton) joinClanCodeButton.disabled = !(state.clans?.access?.canJoin); }
-}
-async function clanCheckIn() {
-  if (!clanCheckinButton) return; clanCheckinButton.disabled = true;
-  try { const r = await postApi("/api/clans/check-in", {}); await refreshClans(); setStatus(r.message || "Отметка."); }
-  catch { setStatus("Уже отметился."); }
+  showInitialView();
 }
 
 // ── EVENTS ──
-copyButton?.addEventListener("click", async () => { if (!state.inviteLink) return; await navigator.clipboard.writeText(state.inviteLink); tg?.HapticFeedback?.notificationOccurred("success"); setStatus("Ссылка скопирована."); });
-shareButton?.addEventListener("click", () => { if (!state.inviteLink) return; tg?.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(state.inviteLink)}&text=${encodeURIComponent("Заходи в HardPoint")}`); });
 saveLoginButton?.addEventListener("click", async () => { saveLoginButton.disabled = true; try { const r = await postApi("/api/club-login", { clubLogin: clubLoginInput.value.trim() }); clubLoginInput.value = r.clubLogin || ""; setStatus("Логин сохранён."); } catch { setStatus("Не удалось."); } finally { saveLoginButton.disabled = false; } });
 
 document.querySelectorAll(".bottom-nav .nav-btn").forEach(b => b.addEventListener("click", () => { openGroup(b.dataset.group); tg?.HapticFeedback?.selectionChanged(); }));
 homeClubCard?.addEventListener("click", () => showView(clubView));
-backButton.addEventListener("click", goBack);
-profileMenuButton.addEventListener("click", toggleProfileDropdown);
-homeAvatarButton?.addEventListener("click", () => showView(profileView));
-dropdownProfileButton?.addEventListener("click", () => showView(profileView));
-dropdownSettingsButton?.addEventListener("click", () => showView(profileView));
-profileInvitesButton?.addEventListener("click", () => showView(invitesView));
-profileMissionsButton?.addEventListener("click", () => showView(missionsView));
-profileClansButton?.addEventListener("click", () => showView(clansView));
-document.addEventListener("click", e => { if (!profileDropdown.contains(e.target) && !profileMenuButton.contains(e.target)) closeProfileDropdown(); });
-homeMissionsCard?.addEventListener("click", () => showView(missionsView));
-document.querySelector("#header-coins")?.addEventListener("click", () => showView(missionsView));
 homeSeriesCard?.addEventListener("click", () => showView(leagueView));
 homeLiveCard?.addEventListener("click", () => showView(liveView));
-document.querySelector("#home-invite-card")?.addEventListener("click", () => showView(invitesView));
-weeklyTab?.addEventListener("click", showWeeklyTop);
-allTimeTab?.addEventListener("click", showAllTimeTop);
-clanWeeklyTab?.addEventListener("click", showClanWeeklyTop);
-clanMonthlyTab?.addEventListener("click", showClanMonthlyTop);
 liveTab5x5?.addEventListener("click", () => switchLiveFormat("5x5"));
 liveTab2x2?.addEventListener("click", () => switchLiveFormat("2x2"));
 liveContent?.addEventListener("click", e => {
@@ -921,46 +580,8 @@ leagueInviteSheet?.addEventListener("click", e => { if (e.target === leagueInvit
 leagueCopyCodeButton?.addEventListener("click", copyLeagueInviteCode);
 leagueShareCodeButton?.addEventListener("click", shareLeagueInviteCode);
 leaguePendingList?.addEventListener("click", e => { const b = e.target.closest("button[data-team-id]"); if (!b) return; leagueUpdateTeam(Number(b.dataset.teamId), b.dataset.status); });
-if (createClanButton) createClanButton.addEventListener("click", createClan);
-if (joinClanCodeButton) joinClanCodeButton.addEventListener("click", () => joinClan({ code: joinClanCodeInput.value.trim() }));
-if (clanCheckinButton) clanCheckinButton.addEventListener("click", clanCheckIn);
-if (copyClanCodeButton) copyClanCodeButton.addEventListener("click", async () => { await navigator.clipboard.writeText(clanCodeNode.textContent.trim()); setStatus("Код скопирован."); });
-if (publicClansList) publicClansList.addEventListener("click", e => { const b = e.target.closest("button[data-clan-id]"); if (!b) return; joinClan({ clanId: Number(b.dataset.clanId) }); });
-dailyRewardButton?.addEventListener("click", () => claimMission("daily"));
-visitRewardButton?.addEventListener("click", () => claimMission("visit"));
-instagramRewardButton?.addEventListener("click", () => claimMission("instagram"));
-discordRewardButton?.addEventListener("click", () => claimMission("discord"));
-teamFinalsButton?.addEventListener("click", () => { const open = !teamFinalsPanel.classList.contains("is-open"); teamFinalsPanel.classList.toggle("is-open", open); teamFinalsPanel.setAttribute("aria-hidden", String(!open)); teamFinalsButton.classList.toggle("is-active", open); teamFinalsButton.setAttribute("aria-expanded", String(open)); });
-namaIconButton?.addEventListener("click", () => { const open = !namaProfilePanel.classList.contains("is-open"); namaProfilePanel.classList.toggle("is-open", open); namaProfilePanel.setAttribute("aria-hidden", String(!open)); namaIconButton.classList.toggle("is-active", open); namaIconButton.setAttribute("aria-expanded", String(open)); });
 
-// ── CANVAS ──
-const canvas = document.querySelector("#arena");
-const context = canvas.getContext("2d");
-let width = 0, height = 0, points = [];
-function resize() {
-  const ratio = window.devicePixelRatio || 1;
-  width = window.innerWidth; height = window.innerHeight;
-  canvas.width = Math.floor(width * ratio); canvas.height = Math.floor(height * ratio);
-  canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  points = Array.from({ length: 34 }, () => ({ x: Math.random() * width, y: Math.random() * height, vx: (Math.random() - .5) * .28, vy: (Math.random() - .5) * .28 }));
-}
-function draw() {
-  context.clearRect(0, 0, width, height);
-  context.strokeStyle = "rgba(255,221,61,0.12)"; context.lineWidth = 1;
-  points.forEach((p, i) => {
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < 0 || p.x > width) p.vx *= -1;
-    if (p.y < 0 || p.y > height) p.vy *= -1;
-    for (let j = i + 1; j < points.length; j++) {
-      const o = points[j]; const d = Math.hypot(p.x - o.x, p.y - o.y);
-      if (d < 115) { context.globalAlpha = 1 - d / 115; context.beginPath(); context.moveTo(p.x, p.y); context.lineTo(o.x, o.y); context.stroke(); }
-    }
-  });
-  context.globalAlpha = 1; requestAnimationFrame(draw);
-}
-window.addEventListener("resize", resize);
-resize(); draw(); load();
+load();
 
 // /start бот (кнопка для капитанов в форме создания команды)
 document.querySelector('#open-bot-start')?.addEventListener('click', () => {

@@ -81,7 +81,7 @@ h1,h2,h3,.qmb-title,.club-head h2{font-family:Oswald,Montserrat,sans-serif;lette
 .live-tab.is-active{background:var(--accent)!important;color:var(--ink-dark)!important}
 
 /* bottom nav: 4 tabs, icon + label, accent on current */
-.bottom-nav{grid-template-columns:repeat(4,1fr)!important;background:rgba(21,19,43,.97)!important;border-top:1px solid var(--line)!important}
+.bottom-nav{grid-template-columns:repeat(3,1fr)!important;background:rgba(21,19,43,.97)!important;border-top:1px solid var(--line)!important}
 .nav-btn{color:var(--muted)!important;gap:.25rem!important;background:transparent!important;border:0!important}
 .nav-btn svg{width:1.45rem;height:1.45rem;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .nav-btn small{font-size:.68rem!important;font-weight:800!important;color:inherit!important}

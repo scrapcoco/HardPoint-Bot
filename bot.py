@@ -1,5 +1,4 @@
 import asyncio
-import csv
 import hashlib
 import hmac
 import html
@@ -18,13 +17,12 @@ from zoneinfo import ZoneInfo
 
 import aiohttp as aiohttp_client
 from aiohttp import web
-from telegram import Bot, ChatInviteLink, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
-from telegram.constants import ChatMemberStatus, ChatType, ParseMode
-from telegram.error import BadRequest, Forbidden, TelegramError
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from telegram.constants import ChatType, ParseMode
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
-    ChatMemberHandler,
     CommandHandler,
     ContextTypes,
 )
@@ -45,46 +43,12 @@ WEBAPP_HOST = os.getenv("WEBAPP_HOST", "127.0.0.1")
 WEBAPP_PORT = int(os.getenv("WEBAPP_PORT", "8080"))
 WEB_DIR = Path(__file__).parent / "web"
 CLUB_INFO_PATH = Path(os.getenv("CLUB_INFO_PATH", str(Path(__file__).parent / "club_info.json")))
-SNAPSHOT_DIR = Path(os.getenv("SNAPSHOT_DIR", "snapshots"))
 SNAPSHOT_TZ = ZoneInfo(os.getenv("SNAPSHOT_TZ", "Europe/Warsaw"))
 WEEKLY_RESET_WEEKDAY = 6
 WEEKLY_RESET_TIME = time(23, 59)
 TOURNAMENT_BRACKET_HOUR = 4
 TOURNAMENT_BRACKET_MINUTE = 0
 VALID_BRACKET_SIZES = [4, 8, 16]
-DEFAULT_WEEKLY_PRIZES = [
-    os.getenv("WEEKLY_PRIZE_1", "8 \u0447\u0430\u0441\u043e\u0432 \u0438\u0433\u0440\u044b"),
-    os.getenv("WEEKLY_PRIZE_2", "5 \u0447\u0430\u0441\u043e\u0432 \u0438\u0433\u0440\u044b"),
-    os.getenv("WEEKLY_PRIZE_3", "3 \u0447\u0430\u0441\u0430 \u0438\u0433\u0440\u044b"),
-]
-INVITE_COIN_REWARD = 20
-STREAK_BONUSES = {
-    3: 50,
-    7: 150,
-    14: 300,
-    30: 500,
-}
-CLAN_LEVELS = [
-    {"level": 1, "slots": 5, "xp": 0},
-    {"level": 2, "slots": 7, "xp": 500},
-    {"level": 3, "slots": 10, "xp": 1500},
-    {"level": 4, "slots": 15, "xp": 4000},
-    {"level": 5, "slots": 20, "xp": 8000},
-    {"level": 6, "slots": 25, "xp": 15000},
-    {"level": 7, "slots": 30, "xp": 25000},
-    {"level": 8, "slots": 40, "xp": 45000},
-    {"level": 9, "slots": 50, "xp": 75000},
-    {"level": 10, "slots": 75, "xp": 120000},
-]
-CLAN_CHESTS = [
-    {"key": "common", "title": "Common Chest", "xp": 500, "members": 5, "hours": 1},
-    {"key": "rare", "title": "Rare Chest", "xp": 1500, "members": 20, "hours": 2},
-    {"key": "epic", "title": "Epic Chest", "xp": 3500, "members": 40, "hours": 3},
-]
-CLAN_CHECKIN_XP = 10
-CLAN_DAILY_GOAL_MEMBERS = 3
-CLAN_DAILY_GOAL_XP = 50
-CLAN_CHEST_ACTIVE_XP = 50
 LEAGUE_GAMES = {
     "cs2": "CS2",
 }
@@ -97,14 +61,6 @@ LEAGUE_ADMIN_IDS = {
     for value in os.getenv("LEAGUE_ADMIN_IDS", "").split(",")
     if value.strip().isdigit()
 }
-RANKS = [
-    {"title": "Recruit", "icon": "\ud83e\udd49", "minScore": 0},
-    {"title": "Rookie", "icon": "\ud83e\udd48", "minScore": 10},
-    {"title": "Grinder", "icon": "\ud83e\udd47", "minScore": 20},
-    {"title": "Veteran", "icon": "\ud83d\udca0", "minScore": 30},
-    {"title": "Elite", "icon": "\ud83d\udd25", "minScore": 40},
-    {"title": "Legend", "icon": "\ud83d\udc51", "minScore": 50},
-]
 
 
 def utc_now() -> str:
@@ -522,16 +478,6 @@ def previous_weekly_reset(now: Optional[datetime] = None) -> datetime:
     return candidate.astimezone(timezone.utc)
 
 
-def next_weekly_reset(now: Optional[datetime] = None) -> datetime:
-    local_now = (now or datetime.now(timezone.utc)).astimezone(SNAPSHOT_TZ)
-    candidate = datetime.combine(local_now.date(), WEEKLY_RESET_TIME, tzinfo=SNAPSHOT_TZ)
-    days_until_reset_day = (WEEKLY_RESET_WEEKDAY - local_now.weekday()) % 7
-    candidate += timedelta(days=days_until_reset_day)
-    if candidate <= local_now:
-        candidate += timedelta(days=7)
-    return candidate.astimezone(timezone.utc)
-
-
 def next_bracket_generation(now: Optional[datetime] = None) -> datetime:
     """Next Monday 04:00 Warsaw time"""
     local_now = (now or datetime.now(timezone.utc)).astimezone(SNAPSHOT_TZ)
@@ -585,94 +531,10 @@ def ensure_default_league_seasons(connection: sqlite3.Connection) -> None:
         )
 
 
-def get_state(key: str) -> Optional[str]:
-    with closing(db()) as connection:
-        row = connection.execute("SELECT value FROM app_state WHERE key = ?", (key,)).fetchone()
-        return str(row["value"]) if row else None
-
-
-def set_state(key: str, value: str) -> None:
-    with closing(db()) as connection:
-        connection.execute(
-            "INSERT INTO app_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            (key, value),
-        )
-        connection.commit()
-
-
 def weekly_period_start() -> str:
-    value = get_state("weekly_period_start")
-    if value:
-        return value
-    start = utc_iso(previous_weekly_reset())
-    set_state("weekly_period_start", start)
-    return start
-
-
-def save_invite_link(link: ChatInviteLink, owner_id: int, username: Optional[str], full_name: str) -> None:
-    with closing(db()) as connection:
-        connection.execute(
-            """
-            INSERT OR REPLACE INTO invite_links
-                (invite_link, owner_id, owner_username, owner_full_name, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (link.invite_link, owner_id, username, full_name, utc_now()),
-        )
-        connection.commit()
-
-
-def find_link_owner(invite_link: str) -> Optional[sqlite3.Row]:
-    with closing(db()) as connection:
-        return connection.execute(
-            "SELECT * FROM invite_links WHERE invite_link = ?",
-            (invite_link,),
-        ).fetchone()
-
-
-def latest_invite_for_owner(owner_id: int) -> Optional[sqlite3.Row]:
-    with closing(db()) as connection:
-        return connection.execute(
-            """
-            SELECT * FROM invite_links
-            WHERE owner_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            (owner_id,),
-        ).fetchone()
-
-
-def record_join(chat_id: int, invited_user_id: int, invite_link: str, owner_id: int) -> bool:
-    with closing(db()) as connection:
-        cursor = connection.execute(
-            """
-            INSERT OR IGNORE INTO invited_members
-                (chat_id, invited_user_id, invite_link, owner_id, joined_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (chat_id, invited_user_id, invite_link, owner_id, utc_now()),
-        )
-        connection.commit()
-        return cursor.rowcount == 1
-
-
-def stats_for_owner(owner_id: int) -> int:
-    with closing(db()) as connection:
-        row = connection.execute(
-            "SELECT COUNT(*) AS total FROM invited_members WHERE owner_id = ?",
-            (owner_id,),
-        ).fetchone()
-        return int(row["total"])
-
-
-def weekly_stats_for_owner(owner_id: int) -> int:
-    with closing(db()) as connection:
-        row = connection.execute(
-            "SELECT COUNT(*) AS total FROM invited_members WHERE owner_id = ? AND joined_at >= ?",
-            (owner_id, weekly_period_start()),
-        ).fetchone()
-        return int(row["total"])
+    """Start of the current tournament week (last Sunday 23:59, Europe/Warsaw).
+    Computed from the calendar: it used to be advanced by the removed invite-rating job."""
+    return utc_iso(previous_weekly_reset())
 
 
 def normalize_club_login(value: object) -> str:
@@ -681,51 +543,6 @@ def normalize_club_login(value: object) -> str:
     if len(login) > 40:
         raise web.HTTPBadRequest(reason="\u041b\u043e\u0433\u0438\u043d \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439")
     return login
-
-
-def local_day_key(offset_days: int = 0) -> str:
-    local_now = datetime.now(timezone.utc).astimezone(SNAPSHOT_TZ)
-    return (local_now.date() + timedelta(days=offset_days)).isoformat()
-
-
-def hours_since(value: str) -> Optional[float]:
-    if not value:
-        return None
-    try:
-        created_at = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
-    delta = datetime.now(timezone.utc) - created_at.astimezone(timezone.utc)
-    return max(0, delta.total_seconds() / 3600)
-
-
-def social_mission_state(claimed: bool, requested_at: str, url: str) -> Dict[str, object]:
-    elapsed_hours = hours_since(requested_at)
-    is_pending = bool(requested_at) and not claimed and (elapsed_hours is None or elapsed_hours < 24)
-    is_ready = bool(requested_at) and not claimed and elapsed_hours is not None and elapsed_hours >= 24
-    hours_left = max(0, 24 - int(elapsed_hours or 0)) if is_pending else 0
-    return {
-        "reward": 500,
-        "status": "claimed" if claimed else "ready" if is_ready else "pending" if is_pending else "new",
-        "canClaim": not claimed and not is_pending,
-        "canReceive": is_ready,
-        "requestedAt": requested_at,
-        "hoursLeft": hours_left,
-        "url": url,
-    }
-
-
-def ensure_user_profile(user_id: int, connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """
-        INSERT INTO user_profiles (user_id, updated_at)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO NOTHING
-        """,
-        (user_id, utc_now()),
-    )
 
 
 def save_club_login(user_id: int, club_login: str) -> None:
@@ -752,214 +569,6 @@ def club_login_for_user(user_id: int) -> str:
         return str(row["club_login"]) if row else ""
 
 
-def profile_progress_for_user(user_id: int) -> Dict[str, int]:
-    with closing(db()) as connection:
-        row = connection.execute(
-            "SELECT coins, visits FROM user_profiles WHERE user_id = ?",
-            (user_id,),
-        ).fetchone()
-    invites = stats_for_owner(user_id)
-    bonus_coins = int(row["coins"]) if row else 0
-    visits = int(row["visits"]) if row else 0
-    return {
-        "invites": invites,
-        "coins": invites * INVITE_COIN_REWARD + bonus_coins,
-        "visits": visits,
-        "score": invites,
-        "inviteCoinReward": INVITE_COIN_REWARD,
-    }
-
-
-def missions_for_user(user_id: int) -> Dict[str, object]:
-    today = local_day_key()
-    with closing(db()) as connection:
-        ensure_user_profile(user_id, connection)
-        row = connection.execute(
-            """
-            SELECT
-                last_daily_reward_date,
-                last_visit_reward_date,
-                visit_streak,
-                instagram_reward_claimed,
-                discord_reward_claimed,
-                instagram_reward_requested_at,
-                discord_reward_requested_at
-            FROM user_profiles
-            WHERE user_id = ?
-            """,
-            (user_id,),
-        ).fetchone()
-        connection.commit()
-    last_daily = str(row["last_daily_reward_date"] or "") if row else ""
-    last_visit = str(row["last_visit_reward_date"] or "") if row else ""
-    streak = int(row["visit_streak"] or 0) if row else 0
-    instagram_claimed = bool(row["instagram_reward_claimed"]) if row else False
-    discord_claimed = bool(row["discord_reward_claimed"]) if row else False
-    instagram_requested_at = str(row["instagram_reward_requested_at"] or "") if row else ""
-    discord_requested_at = str(row["discord_reward_requested_at"] or "") if row else ""
-    return {
-        "dailyReward": {
-            "rewardMin": 10,
-            "rewardMax": 50,
-            "canClaim": last_daily != today,
-            "lastClaimDate": last_daily,
-        },
-        "visitReward": {
-            "reward": 5,
-            "canClaim": last_visit != today,
-            "lastClaimDate": last_visit,
-        },
-        "streak": {
-            "days": streak,
-            "milestones": [
-                {"days": days, "reward": reward}
-                for days, reward in STREAK_BONUSES.items()
-            ],
-        },
-        "social": {
-            "instagram": social_mission_state(
-                instagram_claimed,
-                instagram_requested_at,
-                "https://www.instagram.com/hardpoint_szczecin",
-            ),
-            "discord": social_mission_state(
-                discord_claimed,
-                discord_requested_at,
-                "https://discord.gg/8zJUFdjA",
-            ),
-        },
-    }
-
-
-def claim_mission_reward(user_id: int, mission: str) -> Dict[str, object]:
-    today = local_day_key()
-    yesterday = local_day_key(-1)
-    now = utc_now()
-    with closing(db()) as connection:
-        ensure_user_profile(user_id, connection)
-        row = connection.execute(
-            """
-            SELECT
-                coins,
-                last_daily_reward_date,
-                last_visit_reward_date,
-                visit_streak,
-                instagram_reward_claimed,
-                discord_reward_claimed,
-                instagram_reward_requested_at,
-                discord_reward_requested_at
-            FROM user_profiles
-            WHERE user_id = ?
-            """,
-            (user_id,),
-        ).fetchone()
-        if not row:
-            raise web.HTTPInternalServerError(reason="\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d")
-        coins = int(row["coins"] or 0)
-        awarded = 0
-        bonus = 0
-        message = ""
-        if mission == "daily":
-            if str(row["last_daily_reward_date"] or "") == today:
-                raise web.HTTPBadRequest(reason="Daily Reward \u0443\u0436\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d \u0441\u0435\u0433\u043e\u0434\u043d\u044f")
-            awarded = random.randint(10, 50)
-            connection.execute(
-                "UPDATE user_profiles SET coins = ?, last_daily_reward_date = ?, updated_at = ? WHERE user_id = ?",
-                (coins + awarded, today, now, user_id),
-            )
-            message = f"Daily Reward: +{awarded} HP Coins"
-        elif mission == "visit":
-            last_visit = str(row["last_visit_reward_date"] or "")
-            if last_visit == today:
-                raise web.HTTPBadRequest(reason="\u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u0432\u0445\u043e\u0434 \u0443\u0436\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f")
-            previous_streak = int(row["visit_streak"] or 0)
-            streak = previous_streak + 1 if last_visit == yesterday else 1
-            awarded = 5
-            bonus = STREAK_BONUSES.get(streak, 0)
-            connection.execute(
-                "UPDATE user_profiles SET coins = ?, visits = visits + 1, last_visit_reward_date = ?, visit_streak = ?, updated_at = ? WHERE user_id = ?",
-                (coins + awarded + bonus, today, streak, now, user_id),
-            )
-            message = f"\u0412\u0445\u043e\u0434 \u0432 \u0431\u043e\u0442\u0430: +{awarded + bonus} HP Coins"
-        elif mission == "instagram":
-            if int(row["instagram_reward_claimed"] or 0):
-                raise web.HTTPBadRequest(reason="\u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 Instagram \u0443\u0436\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0430")
-            requested_at = str(row["instagram_reward_requested_at"] or "")
-            elapsed_hours = hours_since(requested_at)
-            if not requested_at:
-                connection.execute(
-                    "UPDATE user_profiles SET instagram_reward_requested_at = ?, updated_at = ? WHERE user_id = ?",
-                    (now, now, user_id),
-                )
-                message = "Instagram \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443. \u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0431\u0443\u0434\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0447\u0435\u0440\u0435\u0437 24 \u0447\u0430\u0441\u0430."
-            elif elapsed_hours is not None and elapsed_hours >= 24:
-                awarded = 500
-                connection.execute(
-                    "UPDATE user_profiles SET coins = ?, instagram_reward_claimed = 1, updated_at = ? WHERE user_id = ?",
-                    (coins + awarded, now, user_id),
-                )
-                message = "Instagram \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d: +500 HP Coins"
-            else:
-                raise web.HTTPBadRequest(reason="Instagram \u0435\u0449\u0451 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0435")
-        elif mission == "discord":
-            if int(row["discord_reward_claimed"] or 0):
-                raise web.HTTPBadRequest(reason="\u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 Discord \u0443\u0436\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0430")
-            requested_at = str(row["discord_reward_requested_at"] or "")
-            elapsed_hours = hours_since(requested_at)
-            if not requested_at:
-                connection.execute(
-                    "UPDATE user_profiles SET discord_reward_requested_at = ?, updated_at = ? WHERE user_id = ?",
-                    (now, now, user_id),
-                )
-                message = "Discord \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443. \u041d\u0430\u0433\u0440\u0430\u0434\u0430 \u0431\u0443\u0434\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0447\u0435\u0440\u0435\u0437 24 \u0447\u0430\u0441\u0430."
-            elif elapsed_hours is not None and elapsed_hours >= 24:
-                awarded = 500
-                connection.execute(
-                    "UPDATE user_profiles SET coins = ?, discord_reward_claimed = 1, updated_at = ? WHERE user_id = ?",
-                    (coins + awarded, now, user_id),
-                )
-                message = "Discord \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d: +500 HP Coins"
-            else:
-                raise web.HTTPBadRequest(reason="Discord \u0435\u0449\u0451 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0435")
-        else:
-            raise web.HTTPBadRequest(reason="\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430\u044f \u043c\u0438\u0441\u0441\u0438\u044f")
-        connection.commit()
-    progress = profile_progress_for_user(user_id)
-    return {
-        "ok": True,
-        "message": message,
-        "awardedCoins": awarded,
-        "bonusCoins": bonus,
-        "totalAwardedCoins": awarded + bonus,
-        "missions": missions_for_user(user_id),
-        "user": {
-            "progress": progress,
-            "rank": rank_for_score(progress["score"]),
-        },
-    }
-
-
-def rank_for_score(score: int) -> Dict[str, object]:
-    current = RANKS[0]
-    next_rank: Optional[Dict[str, object]] = None
-    for index, rank in enumerate(RANKS):
-        if score >= int(rank["minScore"]):
-            current = rank
-            next_rank = RANKS[index + 1] if index + 1 < len(RANKS) else None
-    next_score = int(next_rank["minScore"]) if next_rank else int(current["minScore"])
-    remaining = max(0, next_score - score) if next_rank else 0
-    return {
-        "title": current["title"],
-        "icon": current["icon"],
-        "score": score,
-        "nextTitle": next_rank["title"] if next_rank else "",
-        "nextIcon": next_rank["icon"] if next_rank else "",
-        "nextScore": next_score,
-        "remaining": remaining,
-        "isMax": next_rank is None,
-    }
-
-
 def month_key(offset_months: int = 0) -> str:
     local_now = datetime.now(timezone.utc).astimezone(SNAPSHOT_TZ)
     year = local_now.year
@@ -971,270 +580,6 @@ def month_key(offset_months: int = 0) -> str:
         month -= 12
         year += 1
     return f"{year:04d}-{month:02d}"
-
-
-def normalize_clan_name(value: object) -> str:
-    name = " ".join(str(value or "").strip().split())
-    if len(name) < 3:
-        raise web.HTTPBadRequest(reason="\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u043d\u0430 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043a\u043e\u0440\u043e\u0442\u043a\u043e\u0435")
-    if len(name) > 28:
-        raise web.HTTPBadRequest(reason="\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u043d\u0430 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u043e\u0435")
-    return name
-
-
-def generate_clan_code(connection: sqlite3.Connection) -> str:
-    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    while True:
-        code = "HP-" + "".join(random.choice(alphabet) for _ in range(4))
-        row = connection.execute("SELECT id FROM clans WHERE code = ?", (code,)).fetchone()
-        if not row:
-            return code
-
-
-def clan_level_for_xp(total_xp: int) -> Dict[str, object]:
-    current = CLAN_LEVELS[0]
-    next_level: Optional[Dict[str, int]] = None
-    for index, level in enumerate(CLAN_LEVELS):
-        if total_xp >= int(level["xp"]):
-            current = level
-            next_level = CLAN_LEVELS[index + 1] if index + 1 < len(CLAN_LEVELS) else None
-    next_xp = int(next_level["xp"]) if next_level else int(current["xp"])
-    return {
-        "level": int(current["level"]),
-        "slots": int(current["slots"]),
-        "xp": int(current["xp"]),
-        "nextLevel": int(next_level["level"]) if next_level else 0,
-        "nextXp": next_xp,
-        "remaining": max(0, next_xp - total_xp) if next_level else 0,
-        "isMax": next_level is None,
-    }
-
-
-def clan_xp_sum(connection: sqlite3.Connection, clan_id: int, period: str) -> int:
-    if period == "weekly":
-        condition = "week_start = ?"
-        value = weekly_period_start()
-    elif period == "monthly":
-        condition = "month_key = ?"
-        value = month_key()
-    else:
-        condition = "1 = ?"
-        value = 1
-    row = connection.execute(
-        f"SELECT COALESCE(SUM(amount), 0) AS total FROM clan_xp_events WHERE clan_id = ? AND {condition}",
-        (clan_id, value),
-    ).fetchone()
-    return int(row["total"] or 0)
-
-
-def user_clan_xp_sum(connection: sqlite3.Connection, clan_id: int, user_id: int, period: str) -> int:
-    if period == "weekly":
-        condition = "week_start = ?"
-        value = weekly_period_start()
-    elif period == "monthly":
-        condition = "month_key = ?"
-        value = month_key()
-    else:
-        condition = "1 = ?"
-        value = 1
-    row = connection.execute(
-        f"""
-        SELECT COALESCE(SUM(amount), 0) AS total
-        FROM clan_xp_events
-        WHERE clan_id = ? AND user_id = ? AND {condition}
-        """,
-        (clan_id, user_id, value),
-    ).fetchone()
-    return int(row["total"] or 0)
-
-
-def clan_member_count(connection: sqlite3.Connection, clan_id: int) -> int:
-    row = connection.execute(
-        "SELECT COUNT(*) AS total FROM clan_members WHERE clan_id = ?",
-        (clan_id,),
-    ).fetchone()
-    return int(row["total"] or 0)
-
-
-def clan_today_checkins(connection: sqlite3.Connection, clan_id: int) -> int:
-    row = connection.execute(
-        """
-        SELECT COUNT(DISTINCT user_id) AS total
-        FROM clan_xp_events
-        WHERE clan_id = ? AND day_key = ? AND kind = 'checkin'
-        """,
-        (clan_id, local_day_key()),
-    ).fetchone()
-    return int(row["total"] or 0)
-
-
-def clan_user_checked_today(connection: sqlite3.Connection, clan_id: int, user_id: int) -> bool:
-    row = connection.execute(
-        """
-        SELECT id FROM clan_xp_events
-        WHERE clan_id = ? AND user_id = ? AND day_key = ? AND kind = 'checkin'
-        LIMIT 1
-        """,
-        (clan_id, user_id, local_day_key()),
-    ).fetchone()
-    return row is not None
-
-
-def clan_chest_state(weekly_xp: int, members_count: int) -> Dict[str, object]:
-    reached: Optional[Dict[str, object]] = None
-    for chest in CLAN_CHESTS:
-        if weekly_xp >= int(chest["xp"]) and members_count >= int(chest["members"]):
-            reached = chest
-    next_chest = next((chest for chest in CLAN_CHESTS if reached is None or int(chest["xp"]) > int(reached["xp"])), None)
-    if not next_chest and reached:
-        next_chest = reached
-    missing_xp = max(0, int(next_chest["xp"]) - weekly_xp) if next_chest else 0
-    missing_members = max(0, int(next_chest["members"]) - members_count) if next_chest else 0
-    return {
-        "reached": reached,
-        "next": next_chest,
-        "missingXp": missing_xp,
-        "missingMembers": missing_members,
-        "activeXpRequired": CLAN_CHEST_ACTIVE_XP,
-        "chests": CLAN_CHESTS,
-    }
-
-
-def clan_member_name(row: sqlite3.Row) -> str:
-    if row["club_login"]:
-        return str(row["club_login"])
-    if row["username"]:
-        return f"@{row['username']}"
-    return str(row["full_name"] or row["user_id"])
-
-
-def serialize_clan_member(connection: sqlite3.Connection, row: sqlite3.Row, clan_id: int) -> Dict[str, object]:
-    weekly_xp = user_clan_xp_sum(connection, clan_id, int(row["user_id"]), "weekly")
-    total_xp = user_clan_xp_sum(connection, clan_id, int(row["user_id"]), "total")
-    checkins_row = connection.execute(
-        """
-        SELECT COUNT(*) AS total
-        FROM clan_xp_events
-        WHERE clan_id = ? AND user_id = ? AND week_start = ? AND kind = 'checkin'
-        """,
-        (clan_id, int(row["user_id"]), weekly_period_start()),
-    ).fetchone()
-    return {
-        "userId": int(row["user_id"]),
-        "name": clan_member_name(row),
-        "role": str(row["role"]),
-        "weeklyXp": weekly_xp,
-        "totalXp": total_xp,
-        "checkins": int(checkins_row["total"] or 0),
-        "isChestActive": weekly_xp >= CLAN_CHEST_ACTIVE_XP,
-        "needsForChest": max(0, CLAN_CHEST_ACTIVE_XP - weekly_xp),
-    }
-
-
-def serialize_clan(connection: sqlite3.Connection, clan: sqlite3.Row, user_id: Optional[int] = None) -> Dict[str, object]:
-    clan_id = int(clan["id"])
-    weekly_xp = clan_xp_sum(connection, clan_id, "weekly")
-    monthly_xp = clan_xp_sum(connection, clan_id, "monthly")
-    total_xp = clan_xp_sum(connection, clan_id, "total")
-    members_count = clan_member_count(connection, clan_id)
-    level = clan_level_for_xp(total_xp)
-    members = connection.execute(
-        """
-        SELECT members.*, COALESCE(profiles.club_login, '') AS club_login
-        FROM clan_members members
-        LEFT JOIN user_profiles profiles ON profiles.user_id = members.user_id
-        WHERE members.clan_id = ?
-        ORDER BY members.role = 'leader' DESC, members.joined_at ASC
-        """,
-        (clan_id,),
-    ).fetchall()
-    serialized_members = [serialize_clan_member(connection, row, clan_id) for row in members]
-    serialized_members.sort(key=lambda item: int(item["weeklyXp"]), reverse=True)
-    my_member = next((item for item in serialized_members if user_id and int(item["userId"]) == user_id), None)
-    return {
-        "id": clan_id,
-        "name": str(clan["name"]),
-        "code": str(clan["code"]),
-        "isPublic": bool(clan["is_public"]),
-        "leaderId": int(clan["leader_id"]),
-        "level": level,
-        "membersCount": members_count,
-        "weeklyXp": weekly_xp,
-        "monthlyXp": monthly_xp,
-        "totalXp": total_xp,
-        "chest": clan_chest_state(weekly_xp, members_count),
-        "dailyGoal": {
-            "checked": clan_today_checkins(connection, clan_id),
-            "target": CLAN_DAILY_GOAL_MEMBERS,
-            "reward": CLAN_DAILY_GOAL_XP,
-        },
-        "checkedToday": clan_user_checked_today(connection, clan_id, user_id) if user_id else False,
-        "members": serialized_members[:30],
-        "me": my_member,
-    }
-
-
-def current_user_clan(connection: sqlite3.Connection, user_id: int) -> Optional[sqlite3.Row]:
-    return connection.execute(
-        """
-        SELECT clans.*
-        FROM clan_members members
-        JOIN clans ON clans.id = members.clan_id
-        WHERE members.user_id = ?
-        """,
-        (user_id,),
-    ).fetchone()
-
-
-def public_clans(connection: sqlite3.Connection, limit: int = 20) -> List[Dict[str, object]]:
-    rows = connection.execute(
-        """
-        SELECT * FROM clans
-        WHERE is_public = 1
-        ORDER BY created_at DESC
-        LIMIT ?
-        """,
-        (limit,),
-    ).fetchall()
-    return [serialize_clan(connection, row) for row in rows]
-
-
-def clan_top(connection: sqlite3.Connection, period: str, limit: int = 10) -> List[Dict[str, object]]:
-    if period == "monthly":
-        condition = "events.month_key = ?"
-        value = month_key()
-    else:
-        condition = "events.week_start = ?"
-        value = weekly_period_start()
-    rows = connection.execute(
-        f"""
-        SELECT clans.*, COALESCE(SUM(events.amount), 0) AS period_xp
-        FROM clans
-        LEFT JOIN clan_xp_events events ON events.clan_id = clans.id AND {condition}
-        GROUP BY clans.id
-        ORDER BY period_xp DESC, clans.created_at ASC
-        LIMIT ?
-        """,
-        (value, limit),
-    ).fetchall()
-    result = []
-    for index, row in enumerate(rows, start=1):
-        item = serialize_clan(connection, row)
-        item["place"] = index
-        item["periodXp"] = int(row["period_xp"] or 0)
-        result.append(item)
-    return result
-
-
-def add_clan_xp(connection: sqlite3.Connection, clan_id: int, user_id: int, amount: int, kind: str) -> None:
-    connection.execute(
-        """
-        INSERT INTO clan_xp_events
-            (clan_id, user_id, amount, kind, day_key, week_start, month_key, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (clan_id, user_id, amount, kind, local_day_key(), weekly_period_start(), month_key(), utc_now()),
-    )
 
 
 def normalize_league_game(value: object) -> str:
@@ -1291,12 +636,6 @@ def league_invite_token(connection: sqlite3.Connection) -> str:
         if not row:
             return token
     raise web.HTTPInternalServerError(reason="\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0437\u0434\u0430\u0442\u044c invite token")
-
-
-def league_public_user(user: Dict[str, object]) -> Dict[str, str]:
-    full_name = " ".join(filter(None, [user.get("first_name"), user.get("last_name")])) or str(user["id"])
-    username = str(user.get("username") or "")
-    return {"fullName": full_name, "username": username}
 
 
 def is_league_admin(connection: sqlite3.Connection, tg_id: int) -> bool:
@@ -1769,310 +1108,16 @@ def serialize_bracket(connection: sqlite3.Connection, tournament_id: int) -> Dic
     }
 
 
-def top_inviters(limit: int = 10) -> List[sqlite3.Row]:
-    return top_inviters_since(None, limit)
-
-
-def weekly_top_inviters(limit: int = 10) -> List[sqlite3.Row]:
-    return top_inviters_since(weekly_period_start(), limit)
-
-
-def top_inviters_since(period_start: Optional[str], limit: int = 10) -> List[sqlite3.Row]:
-    join_filter = "AND m.joined_at >= ?" if period_start else ""
-    params: List[object] = [period_start, limit] if period_start else [limit]
-    with closing(db()) as connection:
-        return connection.execute(
-            f"""
-            SELECT
-                owners.owner_id,
-                COALESCE(owners.owner_username, '') AS username,
-                owners.owner_full_name,
-                COALESCE(profiles.club_login, '') AS club_login,
-                COALESCE(profiles.coins, 0) AS coins,
-                COALESCE(profiles.visits, 0) AS visits,
-                COUNT(DISTINCT m.chat_id || ':' || m.invited_user_id) AS total
-            FROM (
-                SELECT owner_id, owner_username, owner_full_name, MAX(created_at) AS created_at
-                FROM invite_links
-                GROUP BY owner_id
-            ) owners
-            LEFT JOIN invited_members m ON m.owner_id = owners.owner_id {join_filter}
-            LEFT JOIN user_profiles profiles ON profiles.user_id = owners.owner_id
-            GROUP BY owners.owner_id
-            ORDER BY total DESC, owners.created_at ASC
-            LIMIT ?
-            """,
-            params,
-        ).fetchall()
-
-
-def weekly_snapshot_files(limit: int = 12) -> List[sqlite3.Row]:
-    with closing(db()) as connection:
-        return connection.execute(
-            """
-            SELECT * FROM weekly_snapshots
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-
-
-def prize_for_place(place: int) -> str:
-    if 1 <= place <= len(DEFAULT_WEEKLY_PRIZES):
-        return DEFAULT_WEEKLY_PRIZES[place - 1]
-    return ""
-
-
-def public_label(row: sqlite3.Row) -> str:
-    return f"@{row['username']}" if row["username"] else str(row["owner_full_name"])
-
-
-def award_label(row: sqlite3.Row) -> str:
-    club_login = str(row["club_login"] or "").strip()
-    if club_login:
-        return f"{public_label(row)} ({club_login})"
-    return public_label(row)
-
-
-def serialize_top_rows(rows: List[sqlite3.Row]) -> List[Dict[str, object]]:
-    return [
-        {
-            "place": index,
-            "name": row["owner_full_name"],
-            "username": row["username"],
-            "clubLogin": row["club_login"],
-            "total": row["total"],
-            "rank": rank_for_score(int(row["total"])),
-            "prize": prize_for_place(index),
-        }
-        for index, row in enumerate(rows, start=1)
-    ]
-
-
-def weekly_results_message(rows: List[sqlite3.Row]) -> str:
-    if not rows:
-        return (
-            "\u0418\u0442\u043e\u0433\u0438 \u043d\u0435\u0434\u0435\u043b\u0438 HardPoint\n\n"
-            "\u041d\u0430 \u044d\u0442\u043e\u0439 \u043d\u0435\u0434\u0435\u043b\u0435 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u0439. \u041d\u043e\u0432\u0430\u044f \u043d\u0435\u0434\u0435\u043b\u044f \u0443\u0436\u0435 \u043d\u0430\u0447\u0430\u043b\u0430\u0441\u044c."
-        )
-    lines = [
-        "\u0418\u0442\u043e\u0433\u0438 \u043d\u0435\u0434\u0435\u043b\u0438 HardPoint",
-        "",
-        "\u0422\u043e\u043f \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u0439:",
-    ]
-    for index, row in enumerate(rows[:10], start=1):
-        prize = prize_for_place(index)
-        prize_text = f" - \u043f\u0440\u0438\u0437: {prize}" if prize else ""
-        lines.append(f"{index}. {award_label(row)} - {row['total']}{prize_text}")
-    lines.extend(
-        [
-            "",
-            "\u041d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u043e\u0431\u043d\u0443\u043b\u0451\u043d. \u041e\u0431\u0449\u0438\u0439 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442\u0441\u044f.",
-            "\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043c\u0438\u043d\u0438-\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435, \u0447\u0442\u043e\u0431\u044b \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u043e\u0432\u0443\u044e \u043d\u0435\u0434\u0435\u043b\u044e \u0438 \u043e\u0431\u0449\u0438\u0439 \u0442\u043e\u043f.",
-        ]
-    )
-    return "\n".join(lines)
-
-
-def save_weekly_snapshot(period_end: Optional[datetime] = None) -> Dict[str, object]:
-    end = period_end or datetime.now(timezone.utc)
-    period_start = weekly_period_start()
-    rows = top_inviters_since(period_start, limit=1000)
-    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    local_end = end.astimezone(SNAPSHOT_TZ)
-    file_path = SNAPSHOT_DIR / f"weekly-rating-{local_end:%Y-%m-%d-%H%M}.csv"
-    with file_path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["period_start", period_start])
-        writer.writerow(["period_end", utc_iso(end)])
-        writer.writerow([])
-        writer.writerow(["place", "user_id", "username", "name", "club_login", "invites"])
-        for index, row in enumerate(rows, start=1):
-            writer.writerow([
-                index,
-                row["owner_id"],
-                row["username"],
-                row["owner_full_name"],
-                row["club_login"],
-                row["total"],
-            ])
-    with closing(db()) as connection:
-        connection.execute(
-            """
-            INSERT INTO weekly_snapshots (period_start, period_end, file_path, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (period_start, utc_iso(end), str(file_path), utc_now()),
-        )
-        connection.commit()
-    set_state("weekly_period_start", utc_iso(end))
-    logging.info("Weekly rating snapshot saved to %s", file_path)
-    return {
-        "file_path": file_path,
-        "period_start": period_start,
-        "period_end": utc_iso(end),
-        "rows": rows,
-    }
-
-
-async def get_or_create_invite_link(
-    bot: Bot,
-    owner_id: int,
-    username: Optional[str],
-    full_name: str,
-) -> str:
-    existing = latest_invite_for_owner(owner_id)
-    if existing:
-        return str(existing["invite_link"])
-    if not GROUP_ID:
-        raise RuntimeError("GROUP_ID is not configured")
-    invite_link = await bot.create_chat_invite_link(
-        chat_id=GROUP_ID,
-        name=f"invite:{owner_id}",
-        creates_join_request=False,
-    )
-    save_invite_link(invite_link, owner_id, username, full_name)
-    return invite_link.invite_link
-
-
-async def ensure_invite_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_user or not update.message:
-        return
-    user = update.effective_user
-    full_name = user.full_name or str(user.id)
-    if not GROUP_ID:
-        await update.message.reply_text(
-            "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0443\u043a\u0430\u0436\u0438\u0442\u0435 GROUP_ID \u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u0445 \u0431\u043e\u0442\u0430."
-        )
-        return
-    try:
-        invite_link = await get_or_create_invite_link(
-            bot=context.bot,
-            owner_id=user.id,
-            username=user.username,
-            full_name=full_name,
-        )
-    except Forbidden:
-        await update.message.reply_text(
-            "\u0411\u043e\u0442 \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443. \u0414\u043e\u0431\u0430\u0432\u044c\u0442\u0435 \u0435\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u043e\u043c \u0433\u0440\u0443\u043f\u043f\u044b."
-        )
-        return
-    except BadRequest as error:
-        await update.message.reply_text(f"Telegram \u043d\u0435 \u0434\u0430\u043b \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443: {error.message}")
-        return
-    except TelegramError:
-        logging.exception("Failed to create invite link")
-        await update.message.reply_text("\u041d\u0435 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u043e\u0441\u044c \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443.")
-        return
-    await update.message.reply_text(
-        "\u0412\u0430\u0448\u0430 \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u0439:\n"
-        f"{invite_link}\n\n"
-        "\u042f \u0431\u0443\u0434\u0443 \u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043b\u044e\u0434\u0435\u0439, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0432\u0441\u0442\u0443\u043f\u044f\u0442 \u0438\u043c\u0435\u043d\u043d\u043e \u043f\u043e \u044d\u0442\u043e\u0439 \u0441\u0441\u044b\u043b\u043a\u0435."
-    )
-
-
-async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_user or not update.message:
-        return
-    weekly_total = weekly_stats_for_owner(update.effective_user.id)
-    total = stats_for_owner(update.effective_user.id)
-    await update.message.reply_text(
-        f"\u0417\u0430 \u044d\u0442\u0443 \u043d\u0435\u0434\u0435\u043b\u044e: {weekly_total}\n"
-        f"\u0417\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f: {total}"
-    )
-
-
-async def week(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message:
-        return
-    rows = weekly_top_inviters()
-    if not rows:
-        await update.message.reply_text("\u0417\u0430 \u044d\u0442\u0443 \u043d\u0435\u0434\u0435\u043b\u044e \u043f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u0438\u0439.")
-        return
-    lines = ["\u0422\u043e\u043f \u044d\u0442\u043e\u0439 \u043d\u0435\u0434\u0435\u043b\u0438:"]
-    for index, row in enumerate(rows, start=1):
-        prize = prize_for_place(index)
-        prize_text = f" - \u043f\u0440\u0438\u0437: {prize}" if prize else ""
-        lines.append(f"{index}. {award_label(row)}: {row['total']}{prize_text}")
-    await update.message.reply_text("\n".join(lines))
-
-
-async def top(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message:
-        return
-    rows = top_inviters()
-    if not rows:
-        await update.message.reply_text("\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0441\u043e\u0437\u0434\u0430\u043d\u043d\u044b\u0445 \u0441\u0441\u044b\u043b\u043e\u043a.")
-        return
-    lines = ["\u0422\u043e\u043f \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f:"]
-    for index, row in enumerate(rows, start=1):
-        lines.append(f"{index}. {public_label(row)}: {row['total']}")
-    await update.message.reply_text("\n".join(lines))
-
-
-async def snapshots(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message:
-        return
-    rows = weekly_snapshot_files()
-    if not rows:
-        await update.message.reply_text("\u0421\u043d\u0438\u043c\u043a\u043e\u0432 \u043d\u0435\u0434\u0435\u043b\u044c\u043d\u043e\u0433\u043e \u0440\u0435\u0439\u0442\u0438\u043d\u0433\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442.")
-        return
-    lines = ["\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u0441\u043d\u0438\u043c\u043a\u0438 \u0440\u0435\u0439\u0442\u0438\u043d\u0433\u0430:"]
-    for row in rows:
-        lines.append(f"{row['period_end']}: {row['file_path']}")
-    await update.message.reply_text("\n".join(lines))
-
-
 async def whats_new(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
     await update.message.reply_text(
-        "\u0427\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u0432 HardPoint:\n\n"
-        "- \u0422\u0443\u0440\u043d\u0438\u0440\u043d\u0430\u044f \u0441\u0435\u0442\u043a\u0430 \u0433\u0435\u043d\u0435\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u043a\u0430\u0436\u0434\u044b\u0439 \u043f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a \u0432 04:00\n"
-        "- Live \u0441\u0435\u0442\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432\u0441\u0435\u043c \u0432 \u043c\u0435\u043d\u044e \u0431\u043e\u0442\u0430\n"
-        "- FACEIT \u0438\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044f \u2014 \u0432\u0435\u0440\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f \u043d\u0438\u043a\u043d\u0435\u0439\u043c\u0430 \u043f\u0440\u0438 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438\n\n"
-        "\u041a\u043e\u043c\u0430\u043d\u0434\u044b:\n"
-        "/link - \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430\n"
-        "/stats - \u043c\u043e\u0438 \u0441\u0447\u0435\u0442\u0447\u0438\u043a\u0438\n"
-        "/week - \u0442\u043e\u043f \u043d\u0435\u0434\u0435\u043b\u0438\n"
-        "/top - \u0442\u043e\u043f \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f\n"
-        "/app - \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0438\u043d\u0438-\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435"
+        "Что нового в HardPoint:\n\n"
+        "- Цены, часы работы и адрес клуба прямо в боте\n"
+        "- Турниры HardPoint Series: сетка каждый понедельник в 04:00\n"
+        "- Счёт засчитывается после подтверждения обоих капитанов\n\n"
+        "/menu - главное меню"
     )
-
-
-async def track_join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_member = update.chat_member
-    if not chat_member:
-        return
-    old_status = chat_member.old_chat_member.status
-    new_status = chat_member.new_chat_member.status
-    joined = old_status in {ChatMemberStatus.LEFT, ChatMemberStatus.BANNED} and new_status in {
-        ChatMemberStatus.MEMBER,
-        ChatMemberStatus.RESTRICTED,
-    }
-    if not joined or not chat_member.invite_link:
-        return
-    invite_link = chat_member.invite_link.invite_link
-    owner = find_link_owner(invite_link)
-    if not owner:
-        return
-    invited_user = chat_member.new_chat_member.user
-    if invited_user.id == owner["owner_id"]:
-        return
-    was_new = record_join(
-        chat_id=chat_member.chat.id,
-        invited_user_id=invited_user.id,
-        invite_link=invite_link,
-        owner_id=owner["owner_id"],
-    )
-    if was_new:
-        logging.info(
-            "User %s joined chat %s via invite owned by %s",
-            invited_user.id,
-            chat_member.chat.id,
-            owner["owner_id"],
-        )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -2083,13 +1128,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/prices - цены и абонементы\n"
         "/hours - часы работы и адрес\n"
         "/series - турниры HardPoint Series\n"
-        "/link - \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0443\u044e \u0441\u0441\u044b\u043b\u043a\u0443\n"
-        "/stats - \u043c\u043e\u0439 \u0441\u0447\u0435\u0442\u0447\u0438\u043a \u0437\u0430 \u043d\u0435\u0434\u0435\u043b\u044e \u0438 \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f\n"
-        "/week - \u0442\u043e\u043f \u044d\u0442\u043e\u0439 \u043d\u0435\u0434\u0435\u043b\u0438\n"
-        "/top - \u0442\u043e\u043f \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f\n"
-        "/snapshots - \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u0444\u0430\u0439\u043b\u044b \u043d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0445 \u0441\u043d\u0438\u043c\u043a\u043e\u0432\n"
-        "/new - \u0447\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u0432 \u0431\u043e\u0442\u0435\n"
-        "/chatid - \u043f\u043e\u043a\u0430\u0437\u0430\u0442\u044c ID \u0442\u0435\u043a\u0443\u0449\u0435\u0433\u043e \u0447\u0430\u0442\u0430"
+        "/app - открыть приложение\n"
+        "/new - что нового в боте"
     )
 
 
@@ -2256,7 +1296,6 @@ def club_menu_keyboard(info: Dict[str, object]) -> InlineKeyboardMarkup:
     app_button = _webapp_button("📱 Открыть приложение")
     if app_button:
         rows.append([app_button])
-    rows.append([InlineKeyboardButton("👥 Пригласить друга", callback_data="club:invite")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -2433,26 +1472,6 @@ async def club_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not query or not query.data:
         return
     section = query.data.split(":", 1)[1]
-    if section == "invite":
-        await query.answer()
-        user = query.from_user
-        try:
-            link = await get_or_create_invite_link(
-                bot=context.bot, owner_id=user.id, username=user.username, full_name=user.full_name or str(user.id)
-            )
-        except (RuntimeError, TelegramError):
-            logging.exception("Failed to create invite link from menu")
-            if query.message:
-                await query.message.reply_text("Не получилось создать ссылку. Попробуйте позже.")
-            return
-        if query.message:
-            await query.message.reply_text(
-                "👥 Ваша личная ссылка для друзей:\n"
-                f"{link}\n\n"
-                "За каждого, кто вступит по ней, вы получаете очки в недельном топе. Топ-3 недели получают часы игры в клубе.",
-                disable_web_page_preview=True,
-            )
-        return
     await query.answer()
     text, keyboard = club_section(section, load_club_info())
     try:
@@ -2471,7 +1490,6 @@ async def set_bot_commands(bot: Bot) -> None:
                 ("hours", "Часы работы и адрес"),
                 ("series", "Турниры HardPoint Series"),
                 ("app", "Открыть приложение"),
-                ("link", "Ссылка для приглашения друзей"),
             ]
         )
     except TelegramError:
@@ -2504,34 +1522,15 @@ def user_from_init_data(request: web.Request) -> Dict[str, object]:
 
 async def api_me(request: web.Request) -> web.Response:
     user = user_from_init_data(request)
-    application: Application = request.app["telegram_application"]
-    username = user.get("username")
     full_name = " ".join(filter(None, [user.get("first_name"), user.get("last_name")])) or str(user["id"])
-    try:
-        invite_link = await get_or_create_invite_link(
-            bot=application.bot,
-            owner_id=int(user["id"]),
-            username=str(username) if username else None,
-            full_name=full_name,
-        )
-    except TelegramError as error:
-        raise web.HTTPBadGateway(reason=f"Telegram error: {error}") from error
-    progress = profile_progress_for_user(int(user["id"]))
     return web.json_response(
         {
             "user": {
                 "id": user["id"],
                 "name": full_name,
-                "username": username,
+                "username": user.get("username"),
                 "clubLogin": club_login_for_user(int(user["id"])),
-                "progress": progress,
-                "rank": rank_for_score(progress["score"]),
             },
-            "inviteLink": invite_link,
-            "weeklyInvitedCount": weekly_stats_for_owner(int(user["id"])),
-            "allTimeInvitedCount": stats_for_owner(int(user["id"])),
-            "weeklyPeriodStart": weekly_period_start(),
-            "missions": missions_for_user(int(user["id"])),
         }
     )
 
@@ -2545,166 +1544,6 @@ async def api_save_club_login(request: web.Request) -> web.Response:
     club_login = normalize_club_login(payload.get("clubLogin", ""))
     save_club_login(int(user["id"]), club_login)
     return web.json_response({"ok": True, "clubLogin": club_login})
-
-
-async def api_missions(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    return web.json_response({"missions": missions_for_user(int(user["id"]))})
-
-
-async def api_claim_mission(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    try:
-        payload = await request.json()
-    except json.JSONDecodeError as error:
-        raise web.HTTPBadRequest(reason="\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u0434\u0430\u043d\u043d\u044b\u0445") from error
-    return web.json_response(claim_mission_reward(int(user["id"]), str(payload.get("mission", ""))))
-
-
-def user_display(user: Dict[str, object]) -> Dict[str, str]:
-    full_name = " ".join(filter(None, [user.get("first_name"), user.get("last_name")])) or str(user["id"])
-    username = str(user.get("username") or "")
-    return {"fullName": full_name, "username": username}
-
-
-def clan_access_for_user(user_id: int) -> Dict[str, object]:
-    progress = profile_progress_for_user(user_id)
-    return {
-        "canJoin": int(progress["score"]) >= 10,
-        "canCreate": int(progress["score"]) >= 50,
-        "invites": int(progress["score"]),
-        "rank": rank_for_score(int(progress["score"])),
-    }
-
-
-async def api_clans(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    user_id = int(user["id"])
-    access = clan_access_for_user(user_id)
-    with closing(db()) as connection:
-        clan = current_user_clan(connection, user_id)
-        current = serialize_clan(connection, clan, user_id) if clan else None
-        return web.json_response(
-            {
-                "access": access,
-                "currentClan": current,
-                "publicClans": public_clans(connection),
-                "weeklyTop": clan_top(connection, "weekly"),
-                "monthlyTop": clan_top(connection, "monthly"),
-            }
-        )
-
-
-async def api_create_clan(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    user_id = int(user["id"])
-    if not clan_access_for_user(user_id)["canCreate"]:
-        raise web.HTTPForbidden(reason="\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u043d\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e \u0441 \u0440\u0430\u043d\u0433\u0430 Legend")
-    try:
-        payload = await request.json()
-    except json.JSONDecodeError as error:
-        raise web.HTTPBadRequest(reason="\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u0434\u0430\u043d\u043d\u044b\u0445") from error
-    name = normalize_clan_name(payload.get("name", ""))
-    is_public = 1 if bool(payload.get("isPublic", True)) else 0
-    display = user_display(user)
-    with closing(db()) as connection:
-        if current_user_clan(connection, user_id):
-            raise web.HTTPBadRequest(reason="\u0412\u044b \u0443\u0436\u0435 \u0441\u043e\u0441\u0442\u043e\u0438\u0442\u0435 \u0432 \u043a\u043b\u0430\u043d\u0435")
-        code = generate_clan_code(connection)
-        try:
-            cursor = connection.execute(
-                """
-                INSERT INTO clans (name, code, leader_id, is_public, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (name, code, user_id, is_public, utc_now()),
-            )
-        except sqlite3.IntegrityError as error:
-            raise web.HTTPBadRequest(reason="\u0422\u0430\u043a\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u043d\u0430 \u0443\u0436\u0435 \u0437\u0430\u043d\u044f\u0442\u043e") from error
-        clan_id = int(cursor.lastrowid)
-        connection.execute(
-            """
-            INSERT INTO clan_members (user_id, clan_id, role, username, full_name, joined_at)
-            VALUES (?, ?, 'leader', ?, ?, ?)
-            """,
-            (user_id, clan_id, display["username"], display["fullName"], utc_now()),
-        )
-        connection.commit()
-        clan = connection.execute("SELECT * FROM clans WHERE id = ?", (clan_id,)).fetchone()
-        return web.json_response({"ok": True, "clans": serialize_clan(connection, clan, user_id)})
-
-
-async def api_join_clan(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    user_id = int(user["id"])
-    if not clan_access_for_user(user_id)["canJoin"]:
-        raise web.HTTPForbidden(reason="\u0412\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435 \u0432 \u043a\u043b\u0430\u043d \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e \u0441 \u0440\u0430\u043d\u0433\u0430 Rookie")
-    try:
-        payload = await request.json()
-    except json.JSONDecodeError as error:
-        raise web.HTTPBadRequest(reason="\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u0444\u043e\u0440\u043c\u0430\u0442 \u0434\u0430\u043d\u043d\u044b\u0445") from error
-    clan_id = payload.get("clanId")
-    code = str(payload.get("code", "")).strip().upper()
-    display = user_display(user)
-    with closing(db()) as connection:
-        if current_user_clan(connection, user_id):
-            raise web.HTTPBadRequest(reason="\u0412\u044b \u0443\u0436\u0435 \u0441\u043e\u0441\u0442\u043e\u0438\u0442\u0435 \u0432 \u043a\u043b\u0430\u043d\u0435")
-        if clan_id:
-            clan = connection.execute("SELECT * FROM clans WHERE id = ?", (int(clan_id),)).fetchone()
-        else:
-            clan = connection.execute("SELECT * FROM clans WHERE code = ?", (code,)).fetchone()
-        if not clan:
-            raise web.HTTPBadRequest(reason="\u041a\u043b\u0430\u043d \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d")
-        serialized = serialize_clan(connection, clan)
-        if int(serialized["membersCount"]) >= int(serialized["level"]["slots"]):
-            raise web.HTTPBadRequest(reason="\u0412 \u043a\u043b\u0430\u043d\u0435 \u043d\u0435\u0442 \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u0445 \u043c\u0435\u0441\u0442")
-        connection.execute(
-            """
-            INSERT INTO clan_members (user_id, clan_id, role, username, full_name, joined_at)
-            VALUES (?, ?, 'member', ?, ?, ?)
-            """,
-            (user_id, int(clan["id"]), display["username"], display["fullName"], utc_now()),
-        )
-        connection.commit()
-        clan = connection.execute("SELECT * FROM clans WHERE id = ?", (int(clan["id"]),)).fetchone()
-        return web.json_response({"ok": True, "clan": serialize_clan(connection, clan, user_id)})
-
-
-async def api_clan_checkin(request: web.Request) -> web.Response:
-    user = user_from_init_data(request)
-    user_id = int(user["id"])
-    with closing(db()) as connection:
-        clan = current_user_clan(connection, user_id)
-        if not clan:
-            raise web.HTTPBadRequest(reason="\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u0441\u0442\u0443\u043f\u0438\u0442\u0435 \u0432 \u043a\u043b\u0430\u043d")
-        clan_id = int(clan["id"])
-        if clan_user_checked_today(connection, clan_id, user_id):
-            raise web.HTTPBadRequest(reason="\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0432\u044b \u0443\u0436\u0435 \u043e\u0442\u043c\u0435\u0442\u0438\u043b\u0438\u0441\u044c \u0437\u0430 \u043a\u043b\u0430\u043d")
-        add_clan_xp(connection, clan_id, user_id, CLAN_CHECKIN_XP, "checkin")
-        checked = clan_today_checkins(connection, clan_id)
-        goal_bonus = False
-        if checked >= CLAN_DAILY_GOAL_MEMBERS:
-            try:
-                connection.execute(
-                    "INSERT INTO clan_daily_goals (clan_id, day_key, created_at) VALUES (?, ?, ?)",
-                    (clan_id, local_day_key(), utc_now()),
-                )
-                add_clan_xp(connection, clan_id, 0, CLAN_DAILY_GOAL_XP, "daily_goal")
-                goal_bonus = True
-            except sqlite3.IntegrityError:
-                goal_bonus = False
-        connection.commit()
-        clan = connection.execute("SELECT * FROM clans WHERE id = ?", (clan_id,)).fetchone()
-        message = f"\u041e\u0442\u043c\u0435\u0442\u043a\u0430 \u043f\u0440\u0438\u043d\u044f\u0442\u0430: +{CLAN_CHECKIN_XP} Clan XP"
-        if goal_bonus:
-            message += f". \u0426\u0435\u043b\u044c \u0434\u043d\u044f \u0437\u0430\u043a\u0440\u044b\u0442\u0430: +{CLAN_DAILY_GOAL_XP} XP \u043a\u043b\u0430\u043d\u0443"
-        return web.json_response(
-            {
-                "ok": True,
-                "message": message,
-                "clan": serialize_clan(connection, clan, user_id),
-            }
-        )
 
 
 async def api_league(request: web.Request) -> web.Response:
@@ -3008,27 +1847,6 @@ async def api_league_report_match(request: web.Request) -> web.Response:
         return web.json_response({"ok": True, "league": data})
 
 
-async def api_weekly_top(request: web.Request) -> web.Response:
-    user_from_init_data(request)
-    rows = weekly_top_inviters()
-    return web.json_response(
-        {
-            "periodStart": weekly_period_start(),
-            "top": serialize_top_rows(rows),
-        }
-    )
-
-
-async def api_all_time_top(request: web.Request) -> web.Response:
-    user_from_init_data(request)
-    rows = top_inviters()
-    return web.json_response(
-        {
-            "top": serialize_top_rows(rows),
-        }
-    )
-
-
 async def api_bracket(request: web.Request) -> web.Response:
     """Public Live bracket endpoint"""
     fmt = request.query.get("format", "5x5")
@@ -3261,12 +2079,6 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_get("/api/club", api_club)
     web_app.router.add_get("/api/me", api_me)
     web_app.router.add_post("/api/club-login", api_save_club_login)
-    web_app.router.add_get("/api/missions", api_missions)
-    web_app.router.add_post("/api/missions/claim", api_claim_mission)
-    web_app.router.add_get("/api/clans", api_clans)
-    web_app.router.add_post("/api/clans/create", api_create_clan)
-    web_app.router.add_post("/api/clans/join", api_join_clan)
-    web_app.router.add_post("/api/clans/check-in", api_clan_checkin)
     web_app.router.add_get("/api/league", api_league)
     web_app.router.add_get("/api/league/seasons/active", api_league_active_seasons)
     web_app.router.add_get("/league/seasons/active", api_league_active_seasons)
@@ -3278,9 +2090,6 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_post("/league/teams/join", api_league_join_team)
     web_app.router.add_post("/api/league/team/status", api_league_update_team)
     web_app.router.add_post("/api/league/match/report", api_league_report_match)
-    web_app.router.add_get("/api/top", api_weekly_top)
-    web_app.router.add_get("/api/weekly-top", api_weekly_top)
-    web_app.router.add_get("/api/all-time-top", api_all_time_top)
     web_app.router.add_get("/api/bracket", api_bracket)
     web_app.router.add_post("/api/bracket/register", api_bracket_register)
     web_app.router.add_post("/api/bracket/result", api_bracket_result)
@@ -3294,30 +2103,6 @@ async def start_web_server(application: Application) -> web.AppRunner:
     await site.start()
     logging.info("Web server is running on http://%s:%s", WEBAPP_HOST, WEBAPP_PORT)
     return runner
-
-
-async def announce_weekly_results(bot: Bot, rows: List[sqlite3.Row]) -> None:
-    if not GROUP_ID:
-        logging.warning("GROUP_ID is not configured; weekly results were not announced")
-        return
-    try:
-        await bot.send_message(chat_id=GROUP_ID, text=weekly_results_message(rows))
-        logging.info("Weekly results were announced in chat %s", GROUP_ID)
-    except TelegramError:
-        logging.exception("Failed to announce weekly results")
-
-
-async def weekly_snapshot_scheduler(bot: Bot) -> None:
-    while True:
-        reset_at = next_weekly_reset()
-        delay = max(1, (reset_at - datetime.now(timezone.utc)).total_seconds())
-        logging.info("Next weekly rating snapshot is scheduled for %s", utc_iso(reset_at))
-        await asyncio.sleep(delay)
-        try:
-            snapshot = save_weekly_snapshot(reset_at)
-            await announce_weekly_results(bot, snapshot["rows"])  # type: ignore[arg-type]
-        except Exception:
-            logging.exception("Failed to save weekly rating snapshot")
 
 
 async def _notify_group(bot: Bot, text: str) -> None:
@@ -3442,21 +2227,15 @@ def build_application() -> Application:
         raise RuntimeError("Set BOT_TOKEN in environment or .env file")
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("link", ensure_invite_link))
     application.add_handler(CommandHandler(["menu", "club"], menu_command))
     application.add_handler(CommandHandler("prices", prices_command))
     application.add_handler(CommandHandler("hours", hours_command))
     application.add_handler(CommandHandler("series", series_command))
     application.add_handler(CallbackQueryHandler(club_callback, pattern=r"^club:"))
-    application.add_handler(CommandHandler("stats", stats))
-    application.add_handler(CommandHandler("week", week))
-    application.add_handler(CommandHandler("top", top))
-    application.add_handler(CommandHandler("snapshots", snapshots))
     application.add_handler(CommandHandler(["new", "changes"], whats_new))
     application.add_handler(CommandHandler("chatid", chat_id))
     application.add_handler(CommandHandler("app", app_command))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(ChatMemberHandler(track_join, ChatMemberHandler.CHAT_MEMBER))
     return application
 
 
@@ -3470,22 +2249,18 @@ async def main() -> None:
     init_db()
     application = build_application()
     web_runner: Optional[web.AppRunner] = None
-    snapshot_task: Optional[asyncio.Task[None]] = None
     bracket_task: Optional[asyncio.Task[None]] = None
     await application.initialize()
     await application.start()
     await set_bot_commands(application.bot)
-    snapshot_task = asyncio.create_task(weekly_snapshot_scheduler(application.bot))
     bracket_task = asyncio.create_task(bracket_scheduler(application.bot))
     web_runner = await start_web_server(application)
-    await application.updater.start_polling(allowed_updates=["message", "channel_post", "chat_member", "callback_query"])
+    await application.updater.start_polling(allowed_updates=["message", "callback_query"])
     logging.info("Invite counter bot is running")
     try:
         await asyncio.Event().wait()
     finally:
         await application.updater.stop()
-        if snapshot_task:
-            snapshot_task.cancel()
         if bracket_task:
             bracket_task.cancel()
         if web_runner:
