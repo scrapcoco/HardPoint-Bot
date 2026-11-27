@@ -14,6 +14,7 @@ const state = {
   liveFmt: "5x5",
   liveRefreshTimer: null,
   myLeagueTeamIds: [],
+  liveViewer: { isAdmin: false, captainTeamIds: [] },
   myTgId: null,
 };
 
@@ -339,6 +340,7 @@ function isCaptainOfMatch(m) {
          (m.team2?.id && state.myLeagueTeamIds.includes(m.team2.id));
 }
 function renderLiveBracket(data) {
+  state.liveViewer = data.viewer || { isAdmin: false, captainTeamIds: [] };
   if (!data.bracket) {
     liveContent.innerHTML = `<div class="live-reg-state"><div class="live-reg-icon">📋</div><h3>Идёт регистрация</h3><p>Сетка будет сгенерирована в понедельник в 04:00</p><div class="live-reg-count">${data.registeredTeams || 0} команд зарегистрировано</div></div>`;
     return;
@@ -374,6 +376,7 @@ function renderLiveMatch(m) {
   const t1 = m.team1; const t2 = m.team2; const w = m.winner;
   let barClass = "live-match-bar pending", barText = "Ожидается";
   if (m.status === "played") { barClass = "live-match-bar done"; barText = "Завершён"; }
+  else if (m.status === "disputed") { barClass = "live-match-bar disputed"; barText = "Спор · решает админ"; }
   else if (m.status === "bye") { barClass = "live-match-bar bye"; barText = "BYE"; }
   const t1cls = w ? (w.id === t1?.id ? "winner" : "loser") : (t1 ? "" : "tbd");
   const t2cls = w ? (w.id === t2?.id ? "winner" : "loser") : (t2 ? "" : "tbd");
@@ -384,7 +387,50 @@ function renderLiveMatch(m) {
     if (m.faceitMatchUrl) faceitBtn = `<a href="${escapeHtml(m.faceitMatchUrl)}" target="_blank" class="live-faceit-link">🔗 Открыть комнату FACEIT</a>`;
     else if (isCaptainOfMatch(m)) faceitBtn = `<button class="live-faceit-btn" type="button" data-match-id="${m.id}">🎮 Создать комнату FACEIT</button>`;
   }
-  return `<div class="live-match"><div class="${barClass}">${barText}</div><div class="live-team ${t1cls}"><span>${escapeHtml(t1?.name || "TBD")}</span><b>${s1}</b></div><div class="live-divider"></div><div class="live-team ${t2cls}"><span>${escapeHtml(t2?.name || "TBD")}</span><b>${s2}</b></div>${faceitBtn}</div>`;
+  return `<div class="live-match" data-match-id="${m.id}"><div class="${barClass}">${barText}</div><div class="live-team ${t1cls}"><span>${escapeHtml(t1?.name || "TBD")}</span><b>${s1}</b></div><div class="live-divider"></div><div class="live-team ${t2cls}"><span>${escapeHtml(t2?.name || "TBD")}</span><b>${s2}</b></div>${faceitBtn}${renderScoreControls(m)}</div>`;
+}
+// Score: both captains must report the same result; admin can set it directly.
+function myCaptainTeamInMatch(m) {
+  const ids = state.liveViewer.captainTeamIds || [];
+  if (m.team1?.id && ids.includes(m.team1.id)) return m.team1.id;
+  if (m.team2?.id && ids.includes(m.team2.id)) return m.team2.id;
+  return null;
+}
+function renderScoreControls(m) {
+  if (!["pending", "disputed"].includes(m.status) || !m.team1 || !m.team2) return "";
+  const myTeam = myCaptainTeamInMatch(m);
+  const admin = Boolean(state.liveViewer.isAdmin);
+  if (!myTeam && !admin) return "";
+  const reported = (m.reportedTeamIds || []);
+  let hint = "";
+  if (myTeam && reported.includes(myTeam) && m.status === "pending") hint = `<p class="live-score-hint">✓ Ваш счёт отправлен · ждём соперника</p>`;
+  const label = myTeam ? (reported.includes(myTeam) ? "✏️ Изменить счёт" : "📝 Внести счёт") : "🛡 Засчитать счёт (админ)";
+  const adminExtra = myTeam && admin ? `<button class="live-score-btn is-admin" type="button" data-score-match="${m.id}" data-as-admin="1">🛡 Как админ</button>` : "";
+  return `${hint}<div class="live-score-actions"><button class="live-score-btn" type="button" data-score-match="${m.id}" data-as-admin="${myTeam ? "" : "1"}">${label}</button>${adminExtra}</div>`;
+}
+function openScoreForm(btn) {
+  const card = btn.closest(".live-match");
+  const names = [...card.querySelectorAll(".live-team span")].map(n => n.textContent);
+  card.querySelector(".live-score-form")?.remove();
+  const form = document.createElement("form");
+  form.className = "live-score-form";
+  form.innerHTML = `<label><span>${escapeHtml(names[0] || "Команда 1")}</span><input type="number" inputmode="numeric" min="0" max="99" name="s1" required></label><label><span>${escapeHtml(names[1] || "Команда 2")}</span><input type="number" inputmode="numeric" min="0" max="99" name="s2" required></label><button type="submit">Отправить</button>`;
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const submit = form.querySelector("button"); submit.disabled = true; submit.textContent = "...";
+    try {
+      const result = await postApi("/api/bracket/result", { matchId: Number(btn.dataset.scoreMatch), score1: Number(form.s1.value), score2: Number(form.s2.value), asAdmin: btn.dataset.asAdmin === "1" });
+      tg?.HapticFeedback?.notificationOccurred("success");
+      setStatus(result.message || "Готово.");
+      loadLiveBracket();
+    } catch (err) {
+      tg?.HapticFeedback?.notificationOccurred("error");
+      setStatus(errorMessage(err, "Не удалось отправить счёт."));
+      submit.disabled = false; submit.textContent = "Отправить";
+    }
+  });
+  card.appendChild(form);
+  form.s1.focus();
 }
 function stopLiveRefresh() {
   if (state.liveRefreshTimer) { clearTimeout(state.liveRefreshTimer); state.liveRefreshTimer = null; }
@@ -393,7 +439,7 @@ async function loadLiveBracket() {
   stopLiveRefresh();
   liveContent.innerHTML = `<div class="live-loading">Загрузка...</div>`;
   try {
-    const data = await fetch(`/api/bracket?format=${state.liveFmt}`).then(r => r.json());
+    const data = await fetch(`/api/bracket?format=${state.liveFmt}`, { headers: authHeaders() }).then(r => r.json());
     renderLiveBracket(data);
     if (data.bracket?.status === "active") state.liveRefreshTimer = setTimeout(loadLiveBracket, 30000);
   } catch { liveContent.innerHTML = `<div class="live-error">⚠️ Не удалось загрузить.</div>`; }
@@ -814,7 +860,7 @@ clanWeeklyTab?.addEventListener("click", showClanWeeklyTop);
 clanMonthlyTab?.addEventListener("click", showClanMonthlyTop);
 liveTab5x5?.addEventListener("click", () => switchLiveFormat("5x5"));
 liveTab2x2?.addEventListener("click", () => switchLiveFormat("2x2"));
-liveContent?.addEventListener("click", e => { const btn = e.target.closest("button.live-faceit-btn"); if (!btn) return; createFaceitRoom(btn.dataset.matchId, btn); });
+liveContent?.addEventListener("click", e => { const scoreBtn = e.target.closest("button.live-score-btn"); if (scoreBtn) { openScoreForm(scoreBtn); return; } const btn = e.target.closest("button.live-faceit-btn"); if (!btn) return; createFaceitRoom(btn.dataset.matchId, btn); });
 leagueTabs.forEach(b => b.addEventListener("click", () => showLeagueSection(b.dataset.leagueSection)));
 leagueNextButton?.addEventListener("click", () => showLeagueSection(leagueNextButton.dataset.target || "register"));
 leagueActionJoin?.addEventListener("click", () => showLeagueSection("register"));

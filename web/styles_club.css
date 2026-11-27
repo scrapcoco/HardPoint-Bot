@@ -58,3 +58,15 @@
 .club-action{padding:.65rem;border:1px solid var(--line);border-radius:.85rem;color:var(--ink);background:var(--field);font:inherit;font-size:.74rem;font-weight:900;cursor:pointer}
 .club-action.is-primary{grid-column:1 / -1;color:#151515;background:var(--yellow);border-color:var(--yellow)}
 .club-phone{color:var(--soft);text-decoration:none}
+
+/* ── LIVE: score reporting ── */
+.live-match-bar.disputed{background:rgba(255,95,109,.1);color:var(--red)}
+.live-score-hint{padding:.35rem .6rem 0;color:var(--teal);font-size:.6rem;font-weight:800}
+.live-score-actions{display:flex;gap:.3rem;padding:.4rem .5rem .5rem}
+.live-score-btn{flex:1;padding:.42rem .5rem;border:1px solid rgba(255,221,61,.25);border-radius:.6rem;color:var(--yellow);background:var(--ysoft);font:inherit;font-size:.64rem;font-weight:900;cursor:pointer}
+.live-score-btn.is-admin{flex:0 0 auto;color:var(--soft);background:var(--field);border-color:var(--line)}
+.live-score-form{display:grid;gap:.35rem;padding:.5rem;border-top:1px solid var(--line)}
+.live-score-form label{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.7rem;font-weight:800;color:var(--soft)}
+.live-score-form label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-score-form input{width:3.4rem;padding:.35rem;border:1px solid var(--line);border-radius:.5rem;color:var(--ink);background:var(--field);font:inherit;font-size:.85rem;font-weight:900;text-align:center}
+.live-score-form button{padding:.45rem;border:0;border-radius:.6rem;color:#151515;background:var(--yellow);font:inherit;font-size:.72rem;font-weight:950;cursor:pointer}
