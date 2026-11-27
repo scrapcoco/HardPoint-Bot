@@ -2241,6 +2241,9 @@ def club_section(section: str, info: Dict[str, object]) -> tuple:
         if booking:
             rows.append([InlineKeyboardButton("📅 Забронировать место", url=booking)])
         rows.append([InlineKeyboardButton("🕒 Часы и адрес", callback_data="club:hours")])
+        app_button = _webapp_button("📱 Цены в приложении", "club")
+        if app_button:
+            rows.append([app_button])
         rows.append(_back_row())
         return club_prices_text(info), InlineKeyboardMarkup(rows)
     if section == "hours":
@@ -2269,6 +2272,89 @@ def club_section(section: str, info: Dict[str, object]) -> tuple:
         rows.append(_back_row())
         return club_series_text(info), InlineKeyboardMarkup(rows)
     return club_welcome_text(info), club_menu_keyboard(info)
+
+
+def _hours_range(value: str) -> Optional[tuple]:
+    found = re.findall(r"(\d{1,2}):(\d{2})", value)
+    if len(found) != 2:
+        return None
+    start = int(found[0][0]) * 60 + int(found[0][1])
+    end = int(found[1][0]) * 60 + int(found[1][1])
+    if end <= start:
+        end += 24 * 60  # closes after midnight
+    return start, end
+
+
+def _fmt_minutes(value: int) -> str:
+    value %= 24 * 60
+    return f"{value // 60:02d}:{value % 60:02d}"
+
+
+def club_open_status(info: Dict[str, object], now: Optional[datetime] = None) -> Dict[str, object]:
+    """Is the club open right now, and what are today's hours (Europe/Warsaw)."""
+    now = now or datetime.now(SNAPSHOT_TZ)
+    by_day: Dict[int, Dict[str, object]] = {}
+    for entry in info.get("hours", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        rng = _hours_range(_text(entry.get("time")))
+        if not rng:
+            continue
+        for day in entry.get("weekdays", []) or []:
+            if isinstance(day, int) and 1 <= day <= 7:
+                by_day[day] = {"days": _text(entry.get("days")), "time": _text(entry.get("time")), "start": rng[0], "end": rng[1]}
+    minutes = now.hour * 60 + now.minute
+    today = by_day.get(now.isoweekday())
+    yesterday = by_day.get((now.isoweekday() - 2) % 7 + 1)
+    # Still inside last night's session (e.g. 01:00 after a 14:00–02:00 day).
+    if yesterday and yesterday["end"] > 24 * 60 and minutes < yesterday["end"] - 24 * 60:
+        return {"known": True, "openNow": True, "today": yesterday["time"], "closesAt": _fmt_minutes(yesterday["end"]), "opensAt": ""}
+    if not today:
+        return {"known": bool(by_day), "openNow": False, "today": "", "closesAt": "", "opensAt": ""}
+    if today["start"] <= minutes < today["end"]:
+        return {"known": True, "openNow": True, "today": today["time"], "closesAt": _fmt_minutes(today["end"]), "opensAt": ""}
+    opens_at = _fmt_minutes(today["start"]) if minutes < today["start"] else ""
+    return {"known": True, "openNow": False, "today": today["time"], "closesAt": "", "opensAt": opens_at}
+
+
+def club_public_payload(info: Dict[str, object]) -> Dict[str, object]:
+    sections = []
+    for section in info.get("price_sections", []) or []:
+        if isinstance(section, dict) and _items(section, "items"):
+            sections.append({
+                "title": _text(section.get("title")),
+                "note": _text(section.get("note")),
+                "items": [
+                    {"title": _text(i.get("title")), "price": _text(i.get("price")), "unit": _text(i.get("unit")), "note": _text(i.get("note"))}
+                    for i in _items(section, "items")
+                ],
+            })
+    hours = [
+        {"days": _text(h.get("days")), "time": _text(h.get("time")), "weekdays": h.get("weekdays", [])}
+        for h in info.get("hours", []) or []
+        if isinstance(h, dict) and _text(h.get("days")) and _text(h.get("time"))
+    ]
+    return {
+        "name": _text(info.get("name")) or "HardPoint",
+        "tagline": _text(info.get("tagline")),
+        "address": _text(info.get("address")),
+        "phone": _text(info.get("phone")),
+        "mapUrl": _text(info.get("map_url")),
+        "bookingUrl": _text(info.get("booking_url")),
+        "instagram": _text(info.get("instagram")),
+        "discord": _text(info.get("discord")),
+        "hours": hours,
+        "hoursNote": _text(info.get("hours_note")),
+        "status": club_open_status(info),
+        "today": datetime.now(SNAPSHOT_TZ).isoweekday(),
+        "promos": _active_promos(info),
+        "priceSections": sections,
+    }
+
+
+async def api_club(request: web.Request) -> web.Response:
+    """Public club info for the mini-app (prices, hours, contacts)."""
+    return web.json_response(club_public_payload(load_club_info()), headers={"Cache-Control": "no-store"})
 
 
 async def send_club_section(update: Update, context: ContextTypes.DEFAULT_TYPE, section: str) -> None:
@@ -3050,6 +3136,7 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app = web.Application()
     web_app["telegram_application"] = application
     web_app.router.add_get("/", web_index)
+    web_app.router.add_get("/api/club", api_club)
     web_app.router.add_get("/api/me", api_me)
     web_app.router.add_post("/api/club-login", api_save_club_login)
     web_app.router.add_get("/api/missions", api_missions)

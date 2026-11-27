@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/styles_dropdown_fix.css?v=48">
     <link rel="stylesheet" href="/styles_twitch.css?v=48">
     <link rel="stylesheet" href="/styles_start_warning.css?v=48">
+    <link rel="stylesheet" href="/styles_club.css?v=49">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -49,6 +50,11 @@
           </div>
           <button id="profile-menu-button" class="profile-pill" type="button" aria-expanded="false">◉ Профиль ▾</button>
         </section>
+        <button id="home-club-card" class="club-strip" type="button">
+          <span id="home-club-status" class="club-status-dot"></span>
+          <span class="club-strip-copy"><strong id="home-club-title">Клуб HardPoint</strong><small id="home-club-sub">Цены, часы работы, адрес</small></span>
+          <span class="club-strip-cta">Цены ›</span>
+        </button>
         <section class="quick-panel">
           <button id="home-missions-card" class="quick-missions-big" type="button">
             <div class="qmb-left">
@@ -321,6 +327,28 @@
         </section>
       </div>
 
+      <!-- CLUB VIEW -->
+      <div id="club-view" class="app-view">
+        <section class="club-panel">
+          <div class="club-head">
+            <div><p class="label">Клуб</p><h2 id="club-name">HardPoint</h2><p id="club-tagline" class="club-tagline"></p></div>
+            <span id="club-open-badge" class="club-badge"></span>
+          </div>
+          <div id="club-promos" class="club-promos"></div>
+        </section>
+        <section class="club-panel">
+          <p class="label">Цены</p>
+          <div id="club-price-tabs" class="club-tabs" role="tablist"></div>
+          <div id="club-price-list" class="club-price-list"><div class="live-loading">Загрузка...</div></div>
+        </section>
+        <section class="club-panel">
+          <p class="label">Часы работы</p>
+          <div id="club-hours" class="club-hours"></div>
+          <div id="club-contacts" class="club-contacts"></div>
+          <div id="club-actions" class="club-actions"></div>
+        </section>
+      </div>
+
       <!-- ESPORT VIEW -->
       <div id="esport-view" class="app-view">
         <section class="esport-panel">
@@ -342,6 +370,7 @@
 
       <nav class="bottom-nav">
         <button id="nav-home" class="nav-btn is-current" type="button"><span>⌂</span><small>Главная</small></button>
+        <button id="nav-club" class="nav-btn" type="button"><span>💰</span><small>Клуб</small></button>
         <button id="nav-series" class="nav-btn" type="button"><span>🏆</span><small>Series</small></button>
         <button id="nav-live" class="nav-btn nav-live" type="button"><span>⚡</span><small>LIVE</small></button>
         <button id="nav-esport" class="nav-btn" type="button"><span>🎮</span><small>E-sport</small></button>

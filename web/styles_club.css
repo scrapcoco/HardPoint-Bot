@@ -1,0 +1,59 @@
+/* ── CLUB: prices, hours, contacts ── */
+.bottom-nav{grid-template-columns:repeat(5,1fr)}
+
+/* home strip */
+.club-strip{
+  display:flex;align-items:center;gap:.65rem;width:100%;margin-top:.65rem;padding:.7rem .8rem;
+  border:1px solid var(--line);border-radius:1.1rem;color:var(--ink);background:var(--panel);
+  text-align:left;cursor:pointer;font:inherit;box-shadow:0 .8rem 2rem var(--shadow);
+  transition:transform .18s cubic-bezier(.16,1,.3,1);
+}
+.club-strip:active{transform:scale(.97)}
+.club-status-dot{flex:0 0 auto;width:.6rem;height:.6rem;border-radius:999px;background:var(--muted)}
+.club-status-dot.is-open{background:var(--teal);box-shadow:0 0 0 .22rem var(--tsoft)}
+.club-strip-copy{display:grid;gap:.12rem;min-width:0;flex:1}
+.club-strip-copy strong{font-size:.82rem;font-weight:900}
+.club-strip-copy small{color:var(--muted);font-size:.66rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.club-strip-cta{flex:0 0 auto;padding:.38rem .6rem;border-radius:999px;color:#151515;background:var(--yellow);font-size:.68rem;font-weight:950}
+
+/* club screen */
+.club-panel{margin-top:.65rem;padding:.85rem;border:1px solid var(--line);border-radius:1.15rem;background:var(--panel)}
+.club-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}
+.club-head h2{font-size:1.1rem;margin-top:.15rem}
+.club-tagline{margin-top:.25rem;color:var(--muted);font-size:.7rem;font-weight:700;line-height:1.35}
+.club-badge{flex:0 0 auto;padding:.32rem .55rem;border-radius:999px;font-size:.62rem;font-weight:950;color:var(--muted);background:var(--field)}
+.club-badge.is-open{color:var(--teal);background:var(--tsoft)}
+.club-badge:empty{display:none}
+
+.club-promos{display:grid;gap:.4rem;margin-top:.7rem}
+.club-promos:empty{display:none}
+.club-promo{padding:.6rem .7rem;border:1px solid rgba(255,221,61,.22);border-radius:.85rem;background:var(--ysoft);color:var(--ink);font-size:.74rem;font-weight:800;line-height:1.35}
+.club-promo::before{content:"🔥 "}
+
+.club-tabs{display:flex;gap:.35rem;margin:.55rem -.85rem .6rem;padding:0 .85rem;overflow-x:auto;scrollbar-width:none}
+.club-tabs::-webkit-scrollbar{display:none}
+.club-tab{flex:0 0 auto;padding:.42rem .7rem;border:1px solid var(--line);border-radius:999px;color:var(--soft);background:var(--field);font:inherit;font-size:.7rem;font-weight:850;cursor:pointer;white-space:nowrap}
+.club-tab.is-active{color:#151515;background:var(--yellow);border-color:var(--yellow)}
+
+.club-section-note{margin-bottom:.45rem;color:var(--muted);font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.club-price-list{display:grid;gap:.4rem}
+.club-price-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.62rem .7rem;border-radius:.85rem;background:var(--panel-strong)}
+.club-price-row > span{font-size:.8rem;font-weight:850}
+.club-price-row small{display:block;margin-top:.12rem;color:var(--muted);font-size:.62rem;font-weight:700}
+.club-price-values{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.3rem}
+.club-price{padding:.25rem .5rem;border-radius:.55rem;background:var(--field);font-size:.78rem;font-weight:950;white-space:nowrap}
+.club-price b{margin-right:.25rem;color:var(--muted);font-size:.58rem;font-weight:900}
+.club-price.is-main{color:#151515;background:var(--yellow)}
+.club-price.is-main b{color:rgba(0,0,0,.55)}
+
+.club-hours{display:grid;gap:.3rem;margin-top:.55rem}
+.club-hours-row{display:flex;justify-content:space-between;padding:.5rem .65rem;border-radius:.75rem;font-size:.78rem;font-weight:800;color:var(--soft)}
+.club-hours-row strong{color:var(--ink)}
+.club-hours-row.is-today{background:var(--ysoft);color:var(--yellow)}
+.club-hours-row.is-today strong{color:var(--yellow)}
+.club-contacts{display:grid;gap:.25rem;margin-top:.6rem;color:var(--soft);font-size:.76rem;font-weight:700}
+.club-contacts:empty{display:none}
+.club-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem;margin-top:.7rem}
+.club-actions:empty{display:none}
+.club-action{padding:.65rem;border:1px solid var(--line);border-radius:.85rem;color:var(--ink);background:var(--field);font:inherit;font-size:.74rem;font-weight:900;cursor:pointer}
+.club-action.is-primary{grid-column:1 / -1;color:#151515;background:var(--yellow);border-color:var(--yellow)}
