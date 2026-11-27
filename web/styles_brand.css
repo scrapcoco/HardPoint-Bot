@@ -1,0 +1,52 @@
+/* ── HARDPOINT BRAND THEME: retro Miami, sticker cards ── */
+:root{
+  --bg:#1E1B3A; --ink:#FFFFFF; --muted:#B9A6E8; --soft:#E6DDF7;
+  --yellow:#F4EDE0; --ysoft:rgba(244,237,224,.12); --yellow-soft:rgba(244,237,224,.16);
+  --teal:#3EE6E0; --tsoft:rgba(62,230,224,.14);
+  --purple:#7B5BD6; --violet:#7B5BD6; --red:#FF4FD8;
+  --panel:#2B2457; --panel-strong:#352C6B; --field:rgba(185,166,232,.14);
+  --line:#24143C; --ink-dark:#24143C;
+  --sticker:3px solid #24143C; --hard:5px 6px 0 #24143C;
+  --grad:linear-gradient(180deg,#5C50C8 0%,#7B5BD6 55%,#D94FA8 100%);
+  --grad-hot:linear-gradient(180deg,#FF4FD8 0%,#F27BA8 55%,#F6A97A 100%);
+}
+html{background:#1E1B3A}
+body{background:transparent!important;font-family:Montserrat,Inter,system-ui,sans-serif}
+body::before{background:linear-gradient(180deg,#F6A97A 0%,#F27BA8 18%,#B65FC0 34%,#7B5BD6 52%,#3B2A6E 74%,#1E1B3A 100%)!important}
+#arena{opacity:.12}
+h1,h2,h3,.qmb-title,.club-head h2,.live-round-label,.nav-btn small,.label,.eyebrow{font-family:Oswald,Montserrat,sans-serif;letter-spacing:.3px}
+
+/* sticker panels */
+.welcome-panel,.club-panel,.club-strip,.quick-card,.quick-missions-big,.live-panel,.missions-panel,.clans-panel,.esport-panel,.league-panel,.profile-panel,.rank-panel,.top-panel,.link-panel,.twitch-player-section,.live-match,.live-stats-bar{
+  border:var(--sticker)!important;box-shadow:var(--hard)!important;border-radius:1.1rem!important}
+.club-panel,.welcome-panel,.live-panel,.missions-panel,.clans-panel,.league-panel,.top-panel{background:var(--panel)!important}
+.quick-card,.club-strip{background:var(--grad)!important}
+.quick-missions-big{background:var(--grad-hot)!important}
+.quick-card small,.club-strip-copy small,.qmb-reward{color:#F4EDE0!important}
+.quick-card strong,.qmb-label{color:#fff!important}
+
+/* buttons & chips: cream badge with dark outline */
+.club-strip-cta,.coin-pill,.club-tab.is-active,.club-action.is-primary,.live-score-form button,.club-price.is-main{
+  color:#24143C!important;background:#F4EDE0!important;border:2px solid #24143C!important;box-shadow:2px 3px 0 #24143C!important}
+.club-tab,.club-action,.club-price{border:2px solid #24143C!important;background:#352C6B!important;color:#fff!important}
+.club-price b{color:#B9A6E8}
+.club-price.is-main b{color:rgba(36,20,60,.6)}
+.club-promo{background:var(--grad-hot)!important;border:2px solid #24143C!important;box-shadow:3px 4px 0 #24143C;color:#fff!important;text-shadow:0 1px 0 #24143C}
+.club-hours-row.is-today{background:#F27BA8!important;color:#24143C!important}
+.club-hours-row.is-today strong{color:#24143C!important}
+.club-badge.is-open,.club-status-dot.is-open{color:#24143C;background:#3EE6E0}
+.club-price-row{background:#352C6B!important;border:2px solid #24143C}
+.label,.eyebrow{color:#F6A97A!important}
+
+/* nav */
+.bottom-nav{background:rgba(30,27,58,.92)!important;border-top:3px solid #24143C!important}
+.nav-btn.is-current{color:#FF4FD8!important}
+.nav-btn.is-current span{filter:drop-shadow(0 0 6px rgba(255,79,216,.6))!important}
+.nav-live{background:var(--grad-hot)!important;border:2px solid #24143C!important;color:#fff!important}
+.nav-live small{color:#fff!important}
+.brand-row{background:rgba(36,20,60,.35)!important;border:0!important;backdrop-filter:blur(14px)}
+.welcome-panel{background:#F4EDE0!important;color:#24143C}
+.welcome-panel strong,.welcome-copy strong{color:#24143C!important}
+.welcome-copy p{color:#7B5BD6!important}
+.profile-pill{background:#24143C!important;color:#F4EDE0!important;border:2px solid #24143C!important}
+.twitch-player-section{background:#2B2457!important;overflow:hidden}
