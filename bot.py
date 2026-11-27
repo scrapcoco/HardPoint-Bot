@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import hashlib
 import hmac
 import html
@@ -32,6 +33,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_PATH = os.getenv("DB_PATH", "invites.sqlite3")
+# Team logos live next to the database, one file per team ("<team_id>").
+TEAM_LOGO_DIR = Path(os.getenv("TEAM_LOGO_DIR", str(Path(DB_PATH).resolve().parent / "team_logos")))
+TEAM_LOGO_MAX_BYTES = 300 * 1024
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = os.getenv("GROUP_ID")
 CAPTAIN_GROUP_ID = os.getenv("CAPTAIN_GROUP_ID", "")
@@ -314,6 +318,7 @@ def init_db() -> None:
         ensure_league_user_faceit_column(connection)
         ensure_tournament_indexes(connection)
         ensure_bracket_faceit_column(connection)
+        ensure_team_logo_columns(connection)
         ensure_weekly_period_start(connection)
         ensure_default_league_seasons(connection)
         connection.commit()
@@ -328,6 +333,23 @@ def ensure_bracket_faceit_column(connection: sqlite3.Connection) -> None:
     columns = {row["name"] for row in connection.execute("PRAGMA table_info(tournament_bracket_matches)").fetchall()}
     if "faceit_match_url" not in columns:
         connection.execute("ALTER TABLE tournament_bracket_matches ADD COLUMN faceit_match_url TEXT NOT NULL DEFAULT ''")
+
+
+def ensure_team_logo_columns(connection: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(league_teams)").fetchall()}
+    if "logo_version" not in columns:
+        connection.execute("ALTER TABLE league_teams ADD COLUMN logo_version INTEGER NOT NULL DEFAULT 0")
+    if "logo_mime" not in columns:
+        connection.execute("ALTER TABLE league_teams ADD COLUMN logo_mime TEXT NOT NULL DEFAULT ''")
+
+
+def team_logo_url(row: sqlite3.Row) -> str:
+    """Public URL of a team logo ('' if none); the version busts the browser cache after a change."""
+    try:
+        version = int(row["logo_version"] or 0)
+    except (IndexError, KeyError):
+        return ""
+    return f"/team-logo/{int(row['id'])}?v={version}" if version else ""
 
 
 def ensure_league_user_faceit_column(connection: sqlite3.Connection) -> None:
@@ -756,6 +778,7 @@ def serialize_league_team(connection: sqlite3.Connection, row: sqlite3.Row) -> D
         "seasonId": int(row["season_id"]),
         "status": row["status"],
         "inviteToken": row["invite_token"],
+        "logoUrl": team_logo_url(row),
         "weekEntry": team_week_entry(connection, int(row["id"])),
         "maxMembers": league_team_limit(row),
         "members": [
@@ -811,6 +834,7 @@ def league_standings(connection: sqlite3.Connection, season_id: int, league_user
             {
                 "teamId": team_id,
                 "name": team["name"],
+                "logoUrl": team_logo_url(team),
                 "played": len(matches),
                 "wins": wins,
                 "losses": losses,
@@ -1047,10 +1071,10 @@ def generate_bracket(connection: sqlite3.Connection, tournament_id: int) -> Dict
 def _team_brief(connection: sqlite3.Connection, team_id: Optional[int]) -> Optional[Dict]:
     if not team_id:
         return None
-    row = connection.execute("SELECT id, name, format FROM league_teams WHERE id = ?", (team_id,)).fetchone()
+    row = connection.execute("SELECT id, name, format, logo_version FROM league_teams WHERE id = ?", (team_id,)).fetchone()
     if not row:
         return None
-    return {"id": int(row["id"]), "name": row["name"], "format": row["format"]}
+    return {"id": int(row["id"]), "name": row["name"], "format": row["format"], "logoUrl": team_logo_url(row)}
 
 
 def advance_winner(connection: sqlite3.Connection, tournament_id: int, match_id: int) -> None:
@@ -2093,6 +2117,78 @@ async def api_faceit_verify(request: web.Request) -> web.Response:
     })
 
 
+def _logo_mime(data: bytes) -> str:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    return ""
+
+
+async def api_team_logo_upload(request: web.Request) -> web.Response:
+    """Captain sets or removes the team logo. Body: {teamId, image: "data:image/png;base64,..."} or {teamId, remove: true}."""
+    user = user_from_init_data(request)
+    try:
+        payload = await request.json()
+        team_id = int(payload.get("teamId"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return league_error("bad_request", "Неверный формат данных", 400)
+    remove = bool(payload.get("remove"))
+    data = b""
+    mime = ""
+    if not remove:
+        raw = str(payload.get("image") or "")
+        try:
+            data = base64.b64decode(raw.split(",", 1)[-1], validate=True)
+        except (ValueError, base64.binascii.Error):
+            return league_error("bad_image", "Не удалось прочитать картинку", 400)
+        mime = _logo_mime(data)
+        if not mime:
+            return league_error("bad_image", "Подойдёт картинка PNG или JPG", 400)
+        if len(data) > TEAM_LOGO_MAX_BYTES:
+            return league_error("too_big", "Картинка слишком большая", 400)
+    with closing(db()) as connection:
+        league_user = ensure_league_user(connection, user)
+        team = connection.execute("SELECT * FROM league_teams WHERE id = ?", (team_id,)).fetchone()
+        if not team:
+            return league_error("not_found", "Команда не найдена", 404)
+        is_admin = int(user["id"]) in LEAGUE_ADMIN_IDS
+        if int(team["captain_id"]) != int(league_user["id"]) and not is_admin:
+            return league_error("forbidden", "Логотип может менять только капитан", 403)
+        TEAM_LOGO_DIR.mkdir(parents=True, exist_ok=True)
+        path = TEAM_LOGO_DIR / str(team_id)
+        if remove:
+            path.unlink(missing_ok=True)
+            connection.execute("UPDATE league_teams SET logo_version = 0, logo_mime = '' WHERE id = ?", (team_id,))
+        else:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_bytes(data)
+            tmp.replace(path)
+            connection.execute(
+                "UPDATE league_teams SET logo_version = ?, logo_mime = ? WHERE id = ?",
+                (int(datetime.now(timezone.utc).timestamp()), mime, team_id),
+            )
+        connection.commit()
+        return web.json_response({"ok": True, "message": "Логотип убран" if remove else "Логотип сохранён", "league": serialize_league(connection, user)})
+
+
+async def team_logo(request: web.Request) -> web.StreamResponse:
+    try:
+        team_id = int(request.match_info["team_id"])
+    except ValueError:
+        raise web.HTTPNotFound()
+    with closing(db()) as connection:
+        row = connection.execute("SELECT logo_mime FROM league_teams WHERE id = ?", (team_id,)).fetchone()
+    path = TEAM_LOGO_DIR / str(team_id)
+    if not row or row["logo_mime"] not in ("image/png", "image/jpeg") or not path.is_file():
+        raise web.HTTPNotFound()
+    return web.Response(
+        body=path.read_bytes(),
+        content_type=row["logo_mime"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff"},
+    )
+
+
 async def web_index(request: web.Request) -> web.FileResponse:
     # Always revalidate the page so new app.js?v=... links reach users right after a deploy.
     return web.FileResponse(WEB_DIR / "index.html", headers={"Cache-Control": "no-cache"})
@@ -2121,6 +2217,8 @@ async def start_web_server(application: Application) -> web.AppRunner:
     web_app.router.add_post("/api/bracket/result", api_bracket_result)
     web_app.router.add_post("/api/bracket/faceit-room", api_bracket_faceit_room)
     web_app.router.add_get("/api/faceit/verify", api_faceit_verify)
+    web_app.router.add_post("/api/league/team/logo", api_team_logo_upload)
+    web_app.router.add_get("/team-logo/{team_id}", team_logo)
     web_app.router.add_static("/assets", WEB_DIR / "assets")
     web_app.router.add_static("/", WEB_DIR)
     runner = web.AppRunner(web_app)

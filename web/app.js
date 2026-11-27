@@ -188,6 +188,13 @@ function splitPromo(p) {
   const i = p.indexOf(": ");
   return i > 0 ? [p.slice(0, i), p.slice(i + 2)] : [p, "Подробнее в разделе Клуб"];
 }
+// Team logo if the captain uploaded one, otherwise the team icon.
+const TEAM_ICON = `<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg>`;
+function teamIcon(team) {
+  return team?.logoUrl
+    ? `<span class="home-row-icon team-logo"><img src="${escapeHtml(team.logoUrl)}" alt="" loading="lazy"></span>`
+    : `<span class="home-row-icon">${TEAM_ICON}</span>`;
+}
 function rowIcon(paths) { return `<span class="home-row-icon"><svg viewBox="0 0 24 24">${paths}</svg></span>`; }
 function renderClub(data) {
   clubState.data = data;
@@ -280,6 +287,9 @@ function findTeamName(rounds, winnerId) {
   }
   return null;
 }
+function liveLogo(team) {
+  return team?.logoUrl ? `<img class="live-logo" src="${escapeHtml(team.logoUrl)}" alt="" loading="lazy">` : "";
+}
 function renderLiveMatch(m) {
   const t1 = m.team1; const t2 = m.team2; const w = m.winner;
   const status = { played: ["done", "Завершён"], disputed: ["disputed", "Спор · решает админ"], bye: ["bye", "Проход без игры"] }[m.status] || ["pending", "Ожидается"];
@@ -291,7 +301,7 @@ function renderLiveMatch(m) {
     if (m.faceitMatchUrl) faceitBtn = `<button class="live-btn is-ghost" type="button" data-open-url="${escapeHtml(m.faceitMatchUrl)}">Открыть комнату FACEIT ↗</button>`;
     else if (canEdit) faceitBtn = `<button class="live-btn is-ghost live-faceit-btn" type="button" data-match-id="${m.id}">Добавить комнату FACEIT</button>`;
   }
-  return `<div class="live-match" data-match-id="${m.id}"><div class="live-match-status is-${status[0]}">${status[1]}</div><div class="live-team ${cls(t1)}"><span>${escapeHtml(t1?.name || "Ждём соперника")}</span><b>${score(m.score1)}</b></div><div class="live-team ${cls(t2)}"><span>${escapeHtml(t2?.name || "Ждём соперника")}</span><b>${score(m.score2)}</b></div>${renderScoreControls(m)}${faceitBtn ? `<div class="live-actions">${faceitBtn}</div>` : ""}</div>`;
+  return `<div class="live-match" data-match-id="${m.id}"><div class="live-match-status is-${status[0]}">${status[1]}</div><div class="live-team ${cls(t1)}">${liveLogo(t1)}<span>${escapeHtml(t1?.name || "Ждём соперника")}</span><b>${score(m.score1)}</b></div><div class="live-team ${cls(t2)}">${liveLogo(t2)}<span>${escapeHtml(t2?.name || "Ждём соперника")}</span><b>${score(m.score2)}</b></div>${renderScoreControls(m)}${faceitBtn ? `<div class="live-actions">${faceitBtn}</div>` : ""}</div>`;
 }
 // Score: both captains must report the same result; admin can set it directly.
 function myCaptainTeamInMatch(m) {
@@ -467,10 +477,15 @@ function renderLeagueMyTeam(teams) {
   leagueMyTeamNode.innerHTML = teams.map(team => {
     const count = team.members?.length || 0;
     const full = count >= Number(team.maxMembers || 99);
-    const action = full ? `<span class="home-row-badge">Состав полный</span>` : `<span class="home-row-action">Пригласить</span>`;
-    const tag = full ? "div" : "button";
-    return `<${tag} class="home-row" ${full ? "" : `type="button" data-team-id="${team.id}"`} data-color="peach"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(team.name)}</strong><small>${escapeHtml(team.formatTitle || team.gameTitle)} · ${escapeHtml(leagueStatusLabel(team.status))} · игроков ${count} из ${team.maxMembers || "?"}</small></span>${action}</${tag}>`;
+    const captain = isTeamCaptain(team);
+    const action = !full ? `<span class="home-row-action">Пригласить</span>` : captain ? `<span class="home-row-arrow" aria-hidden="true">›</span>` : `<span class="home-row-badge">Состав полный</span>`;
+    const tag = full && !captain ? "div" : "button";
+    return `<${tag} class="home-row" ${tag === "button" ? `type="button" data-team-id="${team.id}"` : ""} data-color="peach">${teamIcon(team)}<span class="home-row-text"><strong>${escapeHtml(team.name)}</strong><small>${escapeHtml(team.formatTitle || team.gameTitle)} · ${escapeHtml(leagueStatusLabel(team.status))} · игроков ${count} из ${team.maxMembers || "?"}</small></span>${action}</${tag}>`;
   }).join("");
+}
+function isTeamCaptain(team) {
+  const me = (team.members || []).find(m => Number(m.tgId) === Number(state.myTgId));
+  return Boolean(me && Number(me.id) === Number(team.captainId));
 }
 // Teams of the format picked in the Таблица switch.
 function renderLeagueTeams(teams) {
@@ -480,7 +495,7 @@ function renderLeagueTeams(teams) {
   const label = document.querySelector("#league-teams-label");
   if (label) label.textContent = `Команды · ${list.length}`;
   leagueTeamsList.innerHTML = list.length
-    ? list.map(t => `<div class="home-row" data-color="pink"><span class="home-row-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M18 14a6 6 0 0 1 3 5.5"/></svg></span><span class="home-row-text"><strong>${escapeHtml(t.name)}</strong><small>${escapeHtml(leagueStatusLabel(t.status))} · игроков ${t.members?.length || 0} из ${t.maxMembers || "?"}</small></span></div>`).join("")
+    ? list.map(t => `<div class="home-row" data-color="pink">${teamIcon(t)}<span class="home-row-text"><strong>${escapeHtml(t.name)}</strong><small>${escapeHtml(leagueStatusLabel(t.status))} · игроков ${t.members?.length || 0} из ${t.maxMembers || "?"}</small></span></div>`).join("")
     : `<div class="home-row"><span class="home-row-text"><strong>Пока нет команд</strong><small>Стань первым — подай заявку во вкладке «Заявка»</small></span></div>`;
 }
 function renderLeagueStandings() {
@@ -497,7 +512,7 @@ function renderLeagueStandings() {
   } else {
     leagueStandingsList.innerHTML = items.map(item => {
       const trend = item.trend === "new" ? "новая" : item.trend === "0" ? "" : Number(item.trend || 0) > 0 ? `▲${item.trend}` : `▼${Math.abs(Number(item.trend))}`;
-      return `<div class="home-row standing-row${item.isCurrentUserTeam ? " is-mine" : ""}"><span class="standing-place${item.place <= 3 ? " is-top" : ""}">${item.place}</span><span class="home-row-text"><strong>${escapeHtml(item.name)}</strong><small>Игр ${item.played} · побед ${item.wins} · поражений ${item.losses}${trend ? " · " + trend : ""}</small></span><span class="standing-points"><b>${item.points}</b><small>очк.</small></span></div>`;
+      return `<div class="home-row standing-row${item.isCurrentUserTeam ? " is-mine" : ""}"><span class="standing-place${item.place <= 3 ? " is-top" : ""}">${item.place}</span>${item.logoUrl ? `<img class="standing-logo" src="${escapeHtml(item.logoUrl)}" alt="" loading="lazy">` : ""}<span class="home-row-text"><strong>${escapeHtml(item.name)}</strong><small>Игр ${item.played} · побед ${item.wins} · поражений ${item.losses}${trend ? " · " + trend : ""}</small></span><span class="standing-points"><b>${item.points}</b><small>очк.</small></span></div>`;
     }).join("");
   }
   renderLeagueTeams(state.league?.teams || []);
@@ -617,9 +632,52 @@ async function leagueUpdateTeam(teamId, status) {
 function openLeagueInvite(teamId) {
   const team = (state.league?.myTeams || []).find(t => Number(t.id) === Number(teamId));
   if (!team || !leagueInviteSheet) return;
+  state.sheetTeamId = team.id;
+  const full = (team.members?.length || 0) >= Number(team.maxMembers || 99);
+  document.querySelector("#team-sheet-name").textContent = team.name;
+  document.querySelector("#team-sheet-logo").innerHTML = team.logoUrl ? `<img src="${escapeHtml(team.logoUrl)}" alt="">` : TEAM_ICON;
+  document.querySelector("#team-sheet-logo-block").hidden = !isTeamCaptain(team);
+  document.querySelector("#team-logo-remove").hidden = !team.logoUrl;
+  document.querySelector("#team-logo-note").textContent = "";
+  document.querySelector("#team-sheet-invite-block").hidden = full;
   if (leagueInviteCodeNode) leagueInviteCodeNode.textContent = team.inviteToken;
   if (leagueCopyCodeButton) leagueCopyCodeButton.textContent = "Скопировать";
   leagueInviteSheet.hidden = false;
+}
+// Logo: shrink to a 256×256 square on the phone, then upload.
+function fileToLogo(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      let data = canvas.toDataURL("image/png");
+      if (data.length > 380000) data = canvas.toDataURL("image/jpeg", 0.85);
+      resolve(data);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
+  });
+}
+async function uploadTeamLogo(payload) {
+  const note = document.querySelector("#team-logo-note");
+  note.textContent = payload.remove ? "Убираем..." : "Загружаем...";
+  try {
+    const result = await postApi("/api/league/team/logo", { teamId: state.sheetTeamId, ...payload });
+    renderLeague(result.league || {});
+    tg?.HapticFeedback?.notificationOccurred("success");
+    openLeagueInvite(state.sheetTeamId);
+    document.querySelector("#team-logo-note").textContent = result.message || "Готово";
+  } catch (err) {
+    tg?.HapticFeedback?.notificationOccurred("error");
+    note.textContent = errorMessage(err, "Не удалось сохранить логотип.");
+  }
 }
 function closeLeagueInvite() { if (leagueInviteSheet) leagueInviteSheet.hidden = true; }
 async function copyLeagueInviteCode() {
@@ -694,6 +752,13 @@ leagueView?.addEventListener("click", e => {
 });
 faceitHubBanner?.addEventListener("click", () => openExternal(faceitHubBanner.dataset.url));
 leagueInviteClose?.addEventListener("click", closeLeagueInvite);
+document.querySelector("#team-logo-input")?.addEventListener("change", async e => {
+  const file = e.target.files?.[0]; e.target.value = "";
+  if (!file) return;
+  try { await uploadTeamLogo({ image: await fileToLogo(file) }); }
+  catch { document.querySelector("#team-logo-note").textContent = "Не получилось открыть картинку. Попробуй PNG или JPG."; }
+});
+document.querySelector("#team-logo-remove")?.addEventListener("click", () => uploadTeamLogo({ remove: true }));
 leagueInviteSheet?.addEventListener("click", e => { if (e.target === leagueInviteSheet) closeLeagueInvite(); });
 leagueCopyCodeButton?.addEventListener("click", copyLeagueInviteCode);
 leagueShareCodeButton?.addEventListener("click", shareLeagueInviteCode);

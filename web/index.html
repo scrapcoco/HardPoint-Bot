@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/styles_club.css?v=52">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/styles_theme.css?v=13">
+    <link rel="stylesheet" href="/styles_theme.css?v=15">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -207,7 +207,27 @@
             <div id="league-admin-empty" class="home-group"><div class="home-row"><span class="home-row-text"><strong>Раздел для администратора</strong><small>Здесь принимают заявки команд</small></span></div></div>
           </div>
           <div id="league-invite-sheet" class="league-invite-sheet" hidden>
-            <article class="league-invite-card"><button id="league-invite-close" class="sheet-close" type="button" aria-label="Закрыть">×</button><p class="label">Команда</p><h2>Пригласи игрока</h2><span>Код команды</span><strong id="league-invite-code">HL-XXXXXX</strong><button id="league-copy-code-button" type="button">Скопировать код</button><button id="league-share-code-button" type="button">Поделиться в Telegram</button></article>
+            <article class="league-invite-card team-sheet">
+              <button id="league-invite-close" class="sheet-close" type="button" aria-label="Закрыть">×</button>
+              <div class="team-sheet-head"><span id="team-sheet-logo" class="team-logo team-logo-lg"></span><div><p class="label">Команда</p><h2 id="team-sheet-name">Команда</h2></div></div>
+              <div id="team-sheet-logo-block" class="team-sheet-block">
+                <p class="wizard-sub">Логотип команды</p>
+                <p class="panel-note">Квадратная картинка PNG или JPG. Её увидят в таблице и в сетке.</p>
+                <div class="team-sheet-buttons">
+                  <label class="live-btn team-logo-pick">Загрузить<input id="team-logo-input" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+                  <button id="team-logo-remove" class="live-btn is-ghost" type="button">Убрать</button>
+                </div>
+                <p id="team-logo-note" class="panel-note"></p>
+              </div>
+              <div id="team-sheet-invite-block" class="team-sheet-block">
+                <p class="wizard-sub">Пригласить игрока</p>
+                <strong id="league-invite-code">HL-XXXXXX</strong>
+                <div class="team-sheet-buttons">
+                  <button id="league-copy-code-button" class="live-btn is-ghost" type="button">Скопировать</button>
+                  <button id="league-share-code-button" class="live-btn" type="button">Отправить в Telegram</button>
+                </div>
+              </div>
+            </article>
           </div>
         </section>
       </div>
@@ -258,6 +278,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=65"></script>
+    <script src="/app.js?v=66"></script>
   </body>
 </html>
