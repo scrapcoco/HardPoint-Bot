@@ -233,6 +233,18 @@ function toggleProfileDropdown() {
   profileMenuButton.setAttribute("aria-expanded", String(open));
 }
 
+// Bot buttons open the app with ?view=series / ?view=live etc.
+function initialViewFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const view = String(params.get("view") || tg?.initDataUnsafe?.start_param || "").toLowerCase();
+  const map = { series: leagueView, league: leagueView, live: liveView, clans: clansView, missions: missionsView, profile: profileView, invites: invitesView, esport: esportView };
+  return map[view] || null;
+}
+function showInitialView() {
+  const view = initialViewFromLocation();
+  if (view) showView(view, { skipHistory: true });
+}
+
 // ── LIVE BRACKET ──
 function roundLabel(rnd, total) {
   if (rnd === total) return "Финал";
@@ -642,13 +654,14 @@ async function load() {
     if (homeUsernameNode) homeUsernameNode.textContent = displayName;
     if (homeAvatarButton) homeAvatarButton.textContent = initialsFor(me.user.name || me.user.username || "HP");
     renderRank(me.user); renderMissions(me.missions || {}); renderClans(clans); renderLeague(league);
-    showWeeklyTop();
+    showWeeklyTop(); showInitialView();
   } catch {
     if (inviteLinkNode) inviteLinkNode.textContent = "Откройте из Telegram.";
     if (homeUsernameNode) homeUsernameNode.textContent = "@hardpoint";
     if (homeAvatarButton) homeAvatarButton.textContent = "HP";
     renderRank({ progress: {}, rank: {} }); renderMissions({}); renderClans({}); renderLeague({});
     setStatus("Откройте из Telegram.");
+    showInitialView();
   }
 }
 async function refreshClans() { const c = await api("/api/clans"); renderClans(c); return c; }

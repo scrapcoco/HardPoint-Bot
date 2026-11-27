@@ -2,6 +2,7 @@ import asyncio
 import csv
 import hashlib
 import hmac
+import html
 import json
 import logging
 import os
@@ -18,10 +19,11 @@ from zoneinfo import ZoneInfo
 import aiohttp as aiohttp_client
 from aiohttp import web
 from telegram import Bot, ChatInviteLink, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
-from telegram.constants import ChatMemberStatus
+from telegram.constants import ChatMemberStatus, ChatType, ParseMode
 from telegram.error import BadRequest, Forbidden, TelegramError
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     ChatMemberHandler,
     CommandHandler,
     ContextTypes,
@@ -42,6 +44,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 WEBAPP_HOST = os.getenv("WEBAPP_HOST", "127.0.0.1")
 WEBAPP_PORT = int(os.getenv("WEBAPP_PORT", "8080"))
 WEB_DIR = Path(__file__).parent / "web"
+CLUB_INFO_PATH = Path(os.getenv("CLUB_INFO_PATH", str(Path(__file__).parent / "club_info.json")))
 SNAPSHOT_DIR = Path(os.getenv("SNAPSHOT_DIR", "snapshots"))
 SNAPSHOT_TZ = ZoneInfo(os.getenv("SNAPSHOT_TZ", "Europe/Warsaw"))
 WEEKLY_RESET_WEEKDAY = 6
@@ -2050,6 +2053,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not update.message:
         return
     await update.message.reply_text(
+        "/menu - главное меню клуба\n"
+        "/prices - цены и абонементы\n"
+        "/hours - часы работы и адрес\n"
+        "/series - турниры HardPoint Series\n"
         "/link - \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u044c\u043d\u0443\u044e \u0441\u0441\u044b\u043b\u043a\u0443\n"
         "/stats - \u043c\u043e\u0439 \u0441\u0447\u0435\u0442\u0447\u0438\u043a \u0437\u0430 \u043d\u0435\u0434\u0435\u043b\u044e \u0438 \u0437\u0430 \u0432\u0441\u0451 \u0432\u0440\u0435\u043c\u044f\n"
         "/week - \u0442\u043e\u043f \u044d\u0442\u043e\u0439 \u043d\u0435\u0434\u0435\u043b\u0438\n"
@@ -2078,6 +2085,266 @@ async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         [[InlineKeyboardButton("\u041e\u0442\u043a\u0440\u044b\u0442\u044c HardPoint", web_app=WebAppInfo(WEBAPP_URL))]]
     )
     await update.message.reply_text("\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u043b\u0438\u0447\u043d\u044b\u0439 \u043a\u0430\u0431\u0438\u043d\u0435\u0442 HardPoint.", reply_markup=keyboard)
+
+
+# ── CLUB MENU (/start) ──────────────────────────────────────────────
+
+def load_club_info() -> Dict[str, object]:
+    """Read club_info.json on every call so price edits apply without a restart."""
+    try:
+        with CLUB_INFO_PATH.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        logging.exception("Failed to read club info from %s", CLUB_INFO_PATH)
+        return {}
+
+
+def _text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _items(info: Dict[str, object], key: str) -> List[Dict[str, object]]:
+    raw = info.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict) and _text(item.get("title"))]
+
+
+def _price_line(item: Dict[str, object]) -> str:
+    title = html.escape(_text(item.get("title")))
+    price = _text(item.get("price"))
+    unit = _text(item.get("unit"))
+    note = _text(item.get("note"))
+    if price:
+        value = f"<b>{html.escape(price)}</b>" + (f" / {html.escape(unit)}" if unit else "")
+    else:
+        value = "уточняйте в клубе"
+    line = f"• {title} — {value}"
+    if note:
+        line += f"\n   <i>{html.escape(note)}</i>"
+    return line
+
+
+def webapp_url_for(view: str = "") -> str:
+    if not WEBAPP_URL or not view:
+        return WEBAPP_URL
+    separator = "&" if "?" in WEBAPP_URL else "?"
+    return f"{WEBAPP_URL}{separator}view={view}"
+
+
+def club_welcome_text(info: Dict[str, object]) -> str:
+    name = html.escape(_text(info.get("name")) or "HardPoint")
+    tagline = html.escape(_text(info.get("tagline")))
+    lines = [f"🎮 <b>Добро пожаловать в {name}!</b>"]
+    if tagline:
+        lines.append(tagline)
+    lines.append("")
+    lines.append("Здесь можно посмотреть цены и часы работы, записаться на турнир HardPoint Series и открыть личный кабинет.")
+    return "\n".join(lines)
+
+
+def club_prices_text(info: Dict[str, object]) -> str:
+    sections: List[str] = []
+    for title_key, items_key, default_title in (
+        ("prices_title", "prices", "Почасовая игра"),
+        ("packages_title", "packages", "Пакеты"),
+        ("passes_title", "passes", "Абонементы"),
+    ):
+        items = _items(info, items_key)
+        if not items:
+            continue
+        title = html.escape(_text(info.get(title_key)) or default_title)
+        sections.append(f"<b>{title}</b>\n" + "\n".join(_price_line(item) for item in items))
+    promos = [html.escape(_text(p)) for p in info.get("promos", []) or [] if _text(p)]
+    if promos:
+        sections.append("<b>🔥 Акции</b>\n" + "\n".join(f"• {p}" for p in promos))
+    if not sections:
+        sections.append("Цены скоро появятся здесь. Пока уточняйте в клубе.")
+    return "💰 <b>Цены и абонементы</b>\n\n" + "\n\n".join(sections)
+
+
+def club_hours_text(info: Dict[str, object]) -> str:
+    lines = ["🕒 <b>Часы работы</b>"]
+    hours = [h for h in info.get("hours", []) or [] if isinstance(h, dict) and _text(h.get("days")) and _text(h.get("time"))]
+    if hours:
+        lines += [f"• {html.escape(_text(h['days']))}: <b>{html.escape(_text(h['time']))}</b>" for h in hours]
+    else:
+        lines.append("Скоро добавим.")
+    note = _text(info.get("hours_note"))
+    if note:
+        lines.append(f"<i>{html.escape(note)}</i>")
+    address = _text(info.get("address"))
+    phone = _text(info.get("phone"))
+    if address or phone:
+        lines.append("")
+        lines.append("📍 <b>Как нас найти</b>")
+        if address:
+            lines.append(html.escape(address))
+        if phone:
+            lines.append(f"☎️ {html.escape(phone)}")
+    return "\n".join(lines)
+
+
+def club_series_text(info: Dict[str, object]) -> str:
+    body = html.escape(_text(info.get("series_text")) or "Еженедельные турниры по CS2.")
+    return f"🏆 <b>HardPoint Series</b>\n\n{body}"
+
+
+def _webapp_button(label: str, view: str = "") -> Optional[InlineKeyboardButton]:
+    url = webapp_url_for(view)
+    return InlineKeyboardButton(label, web_app=WebAppInfo(url)) if url else None
+
+
+def _back_row() -> List[InlineKeyboardButton]:
+    return [InlineKeyboardButton("« Меню", callback_data="club:menu")]
+
+
+def club_menu_keyboard(info: Dict[str, object]) -> InlineKeyboardMarkup:
+    rows: List[List[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton("💰 Цены", callback_data="club:prices"),
+            InlineKeyboardButton("🕒 Часы и адрес", callback_data="club:hours"),
+        ],
+        [InlineKeyboardButton("🏆 Турниры HardPoint Series", callback_data="club:series")],
+    ]
+    booking = _text(info.get("booking_url"))
+    if booking:
+        rows.append([InlineKeyboardButton("📅 Забронировать место", url=booking)])
+    app_button = _webapp_button("📱 Открыть приложение")
+    if app_button:
+        rows.append([app_button])
+    rows.append([InlineKeyboardButton("👥 Пригласить друга", callback_data="club:invite")])
+    return InlineKeyboardMarkup(rows)
+
+
+def club_section(section: str, info: Dict[str, object]) -> tuple:
+    if section == "prices":
+        rows: List[List[InlineKeyboardButton]] = []
+        booking = _text(info.get("booking_url"))
+        if booking:
+            rows.append([InlineKeyboardButton("📅 Забронировать место", url=booking)])
+        rows.append([InlineKeyboardButton("🕒 Часы и адрес", callback_data="club:hours")])
+        rows.append(_back_row())
+        return club_prices_text(info), InlineKeyboardMarkup(rows)
+    if section == "hours":
+        rows = []
+        map_url = _text(info.get("map_url"))
+        if map_url:
+            rows.append([InlineKeyboardButton("🗺 Открыть на карте", url=map_url)])
+        socials = []
+        if _text(info.get("instagram")):
+            socials.append(InlineKeyboardButton("Instagram", url=_text(info.get("instagram"))))
+        if _text(info.get("discord")):
+            socials.append(InlineKeyboardButton("Discord", url=_text(info.get("discord"))))
+        if socials:
+            rows.append(socials)
+        rows.append([InlineKeyboardButton("💰 Цены", callback_data="club:prices")])
+        rows.append(_back_row())
+        return club_hours_text(info), InlineKeyboardMarkup(rows)
+    if section == "series":
+        rows = []
+        for label, view in (("🎮 Собрать команду", "series"), ("📡 Live-сетка", "live")):
+            button = _webapp_button(label, view)
+            if button:
+                rows.append([button])
+        if FACEIT_HUB_URL:
+            rows.append([InlineKeyboardButton("FACEIT Hub", url=FACEIT_HUB_URL)])
+        rows.append(_back_row())
+        return club_series_text(info), InlineKeyboardMarkup(rows)
+    return club_welcome_text(info), club_menu_keyboard(info)
+
+
+async def send_club_section(update: Update, context: ContextTypes.DEFAULT_TYPE, section: str) -> None:
+    if not update.message:
+        return
+    chat = update.effective_chat
+    if chat and chat.type != ChatType.PRIVATE:
+        # Web-app buttons only work in private chats: send people to the bot instead.
+        username = context.bot.username
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Открыть бота HardPoint", url=f"https://t.me/{username}?start={section}")]]
+        )
+        await update.message.reply_text("Цены, часы работы и турниры — в личке бота 👇", reply_markup=keyboard)
+        return
+    text, keyboard = club_section(section, load_club_info())
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard, disable_web_page_preview=True)
+
+
+START_PAYLOAD_SECTIONS = {"prices": "prices", "hours": "hours", "address": "hours", "series": "series"}
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Deep links like t.me/<bot>?start=prices open the matching section directly
+    # (handy for ads and posts). Any other payload shows the main menu.
+    payload = (context.args[0].lower() if context.args else "").strip()
+    await send_club_section(update, context, START_PAYLOAD_SECTIONS.get(payload, "menu"))
+
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await send_club_section(update, context, "menu")
+
+
+async def prices_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await send_club_section(update, context, "prices")
+
+
+async def hours_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await send_club_section(update, context, "hours")
+
+
+async def series_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await send_club_section(update, context, "series")
+
+
+async def club_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not query.data:
+        return
+    section = query.data.split(":", 1)[1]
+    if section == "invite":
+        await query.answer()
+        user = query.from_user
+        try:
+            link = await get_or_create_invite_link(
+                bot=context.bot, owner_id=user.id, username=user.username, full_name=user.full_name or str(user.id)
+            )
+        except (RuntimeError, TelegramError):
+            logging.exception("Failed to create invite link from menu")
+            if query.message:
+                await query.message.reply_text("Не получилось создать ссылку. Попробуйте позже.")
+            return
+        if query.message:
+            await query.message.reply_text(
+                "👥 Ваша личная ссылка для друзей:\n"
+                f"{link}\n\n"
+                "За каждого, кто вступит по ней, вы получаете очки в недельном топе. Топ-3 недели получают часы игры в клубе.",
+                disable_web_page_preview=True,
+            )
+        return
+    await query.answer()
+    text, keyboard = club_section(section, load_club_info())
+    try:
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard, disable_web_page_preview=True)
+    except BadRequest as error:
+        if "not modified" not in str(error).lower():
+            raise
+
+
+async def set_bot_commands(bot: Bot) -> None:
+    try:
+        await bot.set_my_commands(
+            [
+                ("menu", "Главное меню"),
+                ("prices", "Цены и абонементы"),
+                ("hours", "Часы работы и адрес"),
+                ("series", "Турниры HardPoint Series"),
+                ("app", "Открыть приложение"),
+                ("link", "Ссылка для приглашения друзей"),
+            ]
+        )
+    except TelegramError:
+        logging.exception("Failed to set bot commands")
 
 
 def verify_init_data(init_data: str) -> Dict[str, str]:
@@ -2948,7 +3215,13 @@ def build_application() -> Application:
     if not BOT_TOKEN:
         raise RuntimeError("Set BOT_TOKEN in environment or .env file")
     application = Application.builder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler(["start", "link"], ensure_invite_link))
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("link", ensure_invite_link))
+    application.add_handler(CommandHandler(["menu", "club"], menu_command))
+    application.add_handler(CommandHandler("prices", prices_command))
+    application.add_handler(CommandHandler("hours", hours_command))
+    application.add_handler(CommandHandler("series", series_command))
+    application.add_handler(CallbackQueryHandler(club_callback, pattern=r"^club:"))
     application.add_handler(CommandHandler("stats", stats))
     application.add_handler(CommandHandler("week", week))
     application.add_handler(CommandHandler("top", top))
@@ -2973,10 +3246,11 @@ async def main() -> None:
     bracket_task: Optional[asyncio.Task[None]] = None
     await application.initialize()
     await application.start()
+    await set_bot_commands(application.bot)
     snapshot_task = asyncio.create_task(weekly_snapshot_scheduler(application.bot))
     bracket_task = asyncio.create_task(bracket_scheduler(application.bot))
     web_runner = await start_web_server(application)
-    await application.updater.start_polling(allowed_updates=["message", "channel_post", "chat_member"])
+    await application.updater.start_polling(allowed_updates=["message", "channel_post", "chat_member", "callback_query"])
     logging.info("Invite counter bot is running")
     try:
         await asyncio.Event().wait()

@@ -1,0 +1,42 @@
+{
+  "_help": "Данные клуба для бота. Меняйте только текст в кавычках. Пустое значение \"\" = строка не показывается. После сохранения бот подхватывает изменения сразу, перезапуск не нужен.",
+
+  "name": "HardPoint",
+  "tagline": "Компьютерный клуб в Щецине · CS2 и турниры HardPoint Series",
+
+  "address": "",
+  "map_url": "",
+  "booking_url": "",
+  "phone": "",
+  "instagram": "https://www.instagram.com/hardpoint_szczecin",
+  "discord": "https://discord.gg/8zJUFdjA",
+
+  "hours": [
+    { "days": "Пн – Чт", "time": "" },
+    { "days": "Пт – Сб", "time": "" },
+    { "days": "Вс", "time": "" }
+  ],
+  "hours_note": "",
+
+  "prices_title": "Почасовая игра",
+  "prices": [
+    { "title": "Стандарт", "price": "", "unit": "час", "note": "" },
+    { "title": "VIP", "price": "", "unit": "час", "note": "" }
+  ],
+
+  "packages_title": "Пакеты",
+  "packages": [
+    { "title": "Ночь", "price": "", "note": "" }
+  ],
+
+  "passes_title": "Абонементы",
+  "passes": [
+    { "title": "", "price": "", "note": "" }
+  ],
+
+  "promos": [
+    ""
+  ],
+
+  "series_text": "Еженедельные турниры по CS2 в форматах 5×5 и 2×2. Матчи на FACEIT, сетка формируется каждый понедельник в 04:00. Собери команду прямо в боте."
+}
