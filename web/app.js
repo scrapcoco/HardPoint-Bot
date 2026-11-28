@@ -206,9 +206,6 @@ function renderHomeClub(data) {
   route.hidden = !data.mapUrl; route.onclick = () => openExternal(data.mapUrl);
   const call = document.querySelector("#home-call");
   call.hidden = !data.phone; call.onclick = () => { window.location.href = `tel:${String(data.phone).replace(/\s+/g, "")}`; };
-  const hourly = (data.priceSections || [])[0];
-  document.querySelector("#home-prices").innerHTML = (hourly?.items || []).slice(0, 3).map(item =>
-    `<div class="home-price"><small>${escapeHtml(item.title)}</small><strong>${escapeHtml(String(item.price).replace(/\s*zł/, ""))}<em> zł/ч</em></strong></div>`).join("");
   const promos = data.promos || [];
   document.querySelector("#home-promos-block").hidden = !promos.length;
   document.querySelector("#home-promos").innerHTML = promos.map((p, i) => {
