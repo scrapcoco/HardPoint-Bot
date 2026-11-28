@@ -200,7 +200,6 @@ function renderHomeClub(data) {
   pill.textContent = !st.known ? "Клуб HardPoint" : st.openNow ? `Открыто до ${st.closesAt}` : st.opensAt ? `Откроемся в ${st.opensAt}` : "Сейчас закрыто";
   pill.classList.toggle("is-open", Boolean(st.openNow));
   pill.classList.toggle("is-closed", Boolean(st.known && !st.openNow));
-  document.querySelector("#home-today").textContent = st.today ? `Сегодня ${st.today}` : "";
   document.querySelector("#home-address").textContent = data.address || "";
   const route = document.querySelector("#home-route");
   route.hidden = !data.mapUrl; route.onclick = () => openExternal(data.mapUrl);
@@ -209,8 +208,8 @@ function renderHomeClub(data) {
   const promos = data.promos || [];
   document.querySelector("#home-promos-block").hidden = !promos.length;
   document.querySelector("#home-promos").innerHTML = promos.map((p, i) => {
-    const [title, text] = splitPromo(p);
-    return `<article class="home-promo${i % 2 ? " is-alt" : ""}"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></article>`;
+    const [title] = splitPromo(p);
+    return `<button class="home-promo${i % 2 ? " is-alt" : ""}" type="button" data-go="club"><strong>${escapeHtml(title)}</strong><span aria-hidden="true">›</span></button>`;
   }).join("");
 }
 function renderHomeSeries() {
@@ -221,7 +220,6 @@ function renderHomeSeries() {
     const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
     node.textContent = d ? `${d} д ${h} ч` : h ? `${h} ч ${m} мин` : `${m} мин`;
   }
-  document.querySelector("#home-step-title").textContent = leagueNextTitle?.textContent || "Зарегистрируйся";
   const btn = document.querySelector("#home-step-button");
   btn.textContent = leagueNextButton?.hidden ? "Открыть турниры" : (leagueNextButton?.textContent || "Открыть");
 }

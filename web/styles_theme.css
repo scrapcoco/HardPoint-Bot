@@ -332,3 +332,18 @@ div.home-row{cursor:default}
 #home-promos-block[hidden]{display:none}
 @media (max-width:340px){.home-series{grid-template-columns:1fr}.home-series-step{border-left:0;border-top:1px solid var(--line)}}
 .home-promos{scroll-padding-left:.75rem}
+
+/* ── Home: minimal text ── */
+.home-hero .home-open-pill{position:relative}
+.home-hero .home-address{position:relative;margin-top:.6rem;font-size:.86rem}
+.home-promo{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex:0 0 auto;max-width:80%;padding:.7rem .9rem;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.home-promo strong{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-promo span{color:var(--peach);font-weight:800}
+.home-promo:only-child{flex-basis:auto;max-width:100%;width:100%}
+.home-series{display:flex;align-items:center;gap:.75rem;padding:.8rem .9rem}
+.home-series > .home-series-count{display:flex;align-items:baseline;gap:.45rem;padding:0;flex:1;min-width:0}
+.home-series-count strong{font-size:1.7rem}
+.home-series-count small{text-transform:none;letter-spacing:0;font-size:.8rem}
+.home-series > #home-step-button{flex:0 0 auto;min-height:2.6rem;padding:0 1rem;font-size:.82rem}
+.home-more{font-size:1.15rem;line-height:1}
+@media (max-width:340px){.home-series{flex-wrap:wrap}.home-series > #home-step-button{flex:1 1 100%}}

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/styles_club.css?v=52">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Montserrat:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/styles_theme.css?v=17">
+    <link rel="stylesheet" href="/styles_theme.css?v=18">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
@@ -34,41 +34,30 @@
 
       <!-- HOME VIEW -->
       <div id="home-view" class="app-view is-active">
-        <p class="home-hello">Привет, <strong id="home-username">@hardpoint</strong></p>
-
-        <!-- Club right now: status, today's hours, the two things people need -->
+        <!-- Club right now: status, address, route/call -->
         <section class="home-hero">
-          <div class="home-hero-top">
-            <span id="home-open-pill" class="home-open-pill">Клуб HardPoint</span>
-            <span id="home-today" class="home-today"></span>
-          </div>
-          <h2>Компьютерный клуб в&nbsp;Щецине</h2>
+          <span id="home-open-pill" class="home-open-pill">Клуб HardPoint</span>
           <p id="home-address" class="home-address"></p>
           <div class="home-hero-actions">
-            <button id="home-route" class="home-btn is-main" type="button">Как добраться</button>
+            <button id="home-route" class="home-btn is-main" type="button">Маршрут</button>
             <button id="home-call" class="home-btn" type="button">Позвонить</button>
           </div>
         </section>
 
-        <!-- Promos: swipe cards, read right here -->
+        <!-- Promos: titles only, tap → club -->
         <div id="home-promos-block" hidden>
           <p class="home-group-label">Акции</p>
           <div id="home-promos" class="home-promos"></div>
         </div>
 
-        <!-- Tournament: countdown + personal next step -->
-        <div class="home-section-head"><p class="home-group-label">HardPoint Series</p><button class="home-more" type="button" data-go="tournaments">Турниры ›</button></div>
+        <!-- Tournament: countdown + one action -->
+        <div class="home-section-head"><p class="home-group-label">HardPoint Series</p><button class="home-more" type="button" data-go="tournaments">›</button></div>
         <section class="home-series">
           <div class="home-series-count">
-            <small>Сетка недели через</small>
             <strong id="home-countdown">—</strong>
-            <span>понедельник, 04:00 · CS2 5×5 и 2×2</span>
+            <small>до сетки</small>
           </div>
-          <div class="home-series-step">
-            <small>Твой шаг</small>
-            <strong id="home-step-title">Зарегистрируйся</strong>
-            <button id="home-step-button" class="home-btn is-main" type="button">Открыть</button>
-          </div>
+          <button id="home-step-button" class="home-btn is-main" type="button">Открыть</button>
         </section>
       </div>
 
@@ -288,6 +277,6 @@
       </nav>
       <p class="status" id="status"></p>
     </main>
-    <script src="/app.js?v=68"></script>
+    <script src="/app.js?v=69"></script>
   </body>
 </html>
